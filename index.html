@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1120" />
+  <title>Barber Pro Studio</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">✂</div>
+        <div><h1>Barber Pro</h1><p>Studio Manager</p></div>
+      </div>
+      <nav class="nav">
+        <button class="nav-btn active" data-view="agenda">📅 Agenda</button>
+        <button class="nav-btn" data-view="clienti">👥 Clienti</button>
+        <button class="nav-btn" data-view="report">📊 Gestionale</button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Gestionale barbiere</p>
+          <h2 id="pageTitle">Agenda</h2>
+        </div>
+        <div class="top-actions">
+          <div id="backupNotice" role="status" style="width:100%;font-size:13px;padding:8px 0"></div><button id="exportBtn" class="ghost-btn">Esporta backup</button>
+          <label class="ghost-btn file-label">Ripristina backup<input id="restoreBackupFile" type="file" accept="application/json" hidden></label>
+          <label class="ghost-btn file-label">Importa dati<input id="importFile" type="file" accept="application/json" hidden></label>
+          <button id="installBtn" class="primary-btn hidden">Installa app</button>
+        </div>
+      </header>
+
+      <section id="agenda" class="view active">
+        <div class="toolbar card">
+          <button id="prevWeek" class="round-btn">‹</button>
+          <div id="weekStrip" class="week-strip"></div>
+          <button id="nextWeek" class="round-btn">›</button>
+        </div>
+        <div class="agenda-header card">
+          <div>
+            <span class="muted">Data selezionata</span>
+            <h3 id="selectedDateLabel"></h3>
+          </div>
+          <input id="datePicker" type="date" />
+        </div>
+        <div id="agendaGrid" class="agenda-grid"></div>
+      </section>
+
+      <section id="clienti" class="view">
+        <div class="card split">
+          <input id="newClientName" placeholder="Nome nuovo cliente" />
+          <button id="addClientBtn" class="primary-btn">Aggiungi cliente</button>
+          <label class="ghost-btn file-label">Importa Clienti JSON<input id="importClientsFile" type="file" accept="application/json" hidden></label>
+        </div>
+        <div id="clientList" class="list"></div>
+      </section>
+
+      <section id="report" class="view">
+        <div class="card split wrap">
+          <select id="periodFilter">
+            <option value="day">Giorno</option>
+            <option value="week">Settimana</option>
+            <option value="month">Mese</option>
+            <option value="year">Anno</option>
+            <option value="all">Sempre</option>
+          </select>
+          <input id="reportDate" type="date" />
+          <button id="printReportBtn" class="primary-btn">Stampa report completo</button>
+          <button id="printClientRankingBtn" class="ghost-btn">Stampa classifica clienti</button>
+        </div>
+        <div class="metrics">
+          <div class="metric card"><span>Incasso</span><strong id="metricIncome">0€</strong></div>
+          <div class="metric card"><span>Appuntamenti</span><strong id="metricCount">0</strong></div>
+          <div class="metric card"><span>Clienti</span><strong id="metricClients">0</strong></div>
+        </div>
+        <div class="card"><pre id="reportText"></pre></div>
+        <div id="clientRanking" class="card client-ranking"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="appointmentDialog" class="modal">
+    <form method="dialog" id="appointmentForm">
+      <button id="closeAppointmentDialog" class="modal-close" type="button" aria-label="Chiudi">×</button>
+      <h3 id="appointmentTitle">Nuovo appuntamento</h3>
+      <input type="hidden" id="editingAppointmentId" />
+      <label>Cliente<input id="appointmentClient" list="clientSuggestions" required placeholder="Nome cliente"></label>
+      <datalist id="clientSuggestions"></datalist>
+      <label>Servizio<select id="appointmentService"></select></label>
+      <label>Prezzo opzionale (€)<input id="appointmentCustomPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Lascia vuoto per usare il prezzo del servizio"></label>
+      <label>Ora<input id="appointmentTime" type="time" required></label>
+      <label>Note appuntamento<textarea id="appointmentNotes" rows="3" placeholder="Es. preferenze taglio, ritardo, promemoria, note cliente..."></textarea></label>
+      <div class="modal-actions">
+        <button id="deleteAppointmentBtn" type="button" class="danger-btn hidden">Elimina</button>
+        <button id="cancelAppointmentBtn" type="button" class="ghost-btn">Annulla</button>
+        <button id="saveAppointmentBtn" type="submit" class="primary-btn">Salva</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
