@@ -1,4 +1,4 @@
-const CACHE='barber-pro-github-v15-services1';
+const CACHE='barber-pro-github-v16-ui-refined1';
 const FILES=['./','./index.html','./styles.css','./premium.css','./app.js','./manifest.json','./icon.svg'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});

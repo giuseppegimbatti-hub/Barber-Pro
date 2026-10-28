@@ -94,7 +94,7 @@ function renderServiceSettings(){
   const price=document.createElement('input');price.type='number';price.min='0';price.max='10000';price.step='0.01';price.value=String(item.prezzo);price.setAttribute('aria-label','Prezzo di '+name);
   const duration=document.createElement('select');duration.setAttribute('aria-label','Durata di '+name);
   for(const value of [0.5,1,1.5,2,3,4]){const option=document.createElement('option');option.value=String(value);option.textContent=(value*30)+' min';option.selected=value===item.durata;duration.append(option)}
-  const edit=document.createElement('button');edit.type='button';edit.className='ghost-btn';edit.textContent='Salva';
+  const edit=document.createElement('button');edit.type='button';edit.className='primary-btn service-save-btn';edit.textContent='Salva';
   edit.onclick=()=>{
    const newPrice=Number(price.value);
    if(price.value.trim()===''||!Number.isFinite(newPrice)||newPrice<0||newPrice>10000){alert('Inserisci un prezzo valido.');return}
@@ -116,7 +116,14 @@ function renderServiceSettings(){
    if(!confirm('Eliminare "'+name+'" dal listino? Gli appuntamenti già registrati non saranno eliminati.'))return;
    delete services[name];save(true);renderServiceSettings();
   };
-  row.append(label,price,duration,edit,rename,remove);list.append(row);
+  const actions=document.createElement('details');actions.className='service-more';
+  const trigger=document.createElement('summary');trigger.textContent='⋯';trigger.title='Altre azioni per '+name;trigger.setAttribute('aria-label','Altre azioni per '+name);
+  const menu=document.createElement('div');menu.className='service-more-menu';menu.append(rename,remove);actions.append(trigger,menu);
+  const nameCell=document.createElement('div');nameCell.className='service-name-cell';nameCell.append(label);
+  const priceCell=document.createElement('label');priceCell.className='service-price-cell';const priceCaption=document.createElement('span');priceCaption.textContent='Prezzo (€)';priceCell.append(priceCaption,price);
+  const durationCell=document.createElement('label');durationCell.className='service-duration-cell';const durationCaption=document.createElement('span');durationCaption.textContent='Durata';durationCell.append(durationCaption,duration);
+  row.append(nameCell,priceCell,durationCell,edit,actions);list.append(row);
+
  }
 }
 function setupServiceSettings(){
@@ -135,7 +142,7 @@ function setupServiceSettings(){
   save(true);$('addServiceForm').reset();renderServiceSettings();
  };
 }
-function setView(name){document.querySelectorAll('.view,.nav-btn').forEach(e=>e.classList.remove('active'));$(name).classList.add('active');document.querySelector(`[data-view="${name}"]`).classList.add('active');$('pageTitle').textContent={agenda:'Agenda',clienti:'Clienti',report:'Gestionale',promemoria:'Promemoria WhatsApp',chiusure:'Ferie e chiusure',backup:'Centro backup',servizi:'Servizi e impostazioni'}[name];if(name==='report')renderReport();if(name==='promemoria')renderTomorrowReminders();if(name==='chiusure')renderClosures();if(name==='backup')refreshBackupCenter();if(name==='servizi')renderServiceSettings();scheduleSectionHelp(name)}
+function setView(name){document.querySelectorAll('.view,.nav-btn').forEach(e=>e.classList.remove('active'));$(name).classList.add('active');document.querySelector(`[data-view="${name}"]`).classList.add('active');$('pageTitle').textContent={agenda:'Agenda',clienti:'Clienti',report:'Gestionale',promemoria:'Promemoria WhatsApp',chiusure:'Ferie e chiusure',backup:'Centro backup',servizi:'Servizi e impostazioni'}[name];if(name==='report')renderReport();if(name==='promemoria')renderTomorrowReminders();if(name==='chiusure')renderClosures();document.body.classList.toggle('in-backup-view',name==='backup');if(name==='backup')refreshBackupCenter();if(name==='servizi')renderServiceSettings();scheduleSectionHelp(name)}
 // Festivita nazionali italiane, comprese Pasqua e Lunedi dell'Angelo.
 function easterSunday(year){
  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4;
@@ -368,7 +375,7 @@ function renderServiceRanking(data){
  const body=document.createElement('tbody');for(const [name,count] of items){const row=document.createElement('tr');const c1=document.createElement('td'),c2=document.createElement('td');c1.textContent=name;c2.textContent=count;row.append(c1,c2);body.append(row)}table.append(body);root.append(table);
 }
 function renderRevenueChart(data){
- const root=$('revenueChart');root.replaceChildren();const totals=new Map();
+ const root=$('revenueChart');root.replaceChildren();root.classList.remove('chart-has-data');const totals=new Map();
  const format=(date)=>{const d=new Date(date+'T12:00:00');if(data.type==='year')return date.slice(0,7);if(data.type==='all')return date.slice(0,7);if(data.type==='month')return date.slice(8,10);if(data.type==='week')return d.toLocaleDateString('it-IT',{weekday:'short',day:'numeric'});return date.slice(11)||date.slice(0,10)};
  for(const a of data.paidApps){const k=format(a.date);totals.set(k,(totals.get(k)||0)+Number(a.price||0));}
  if(!totals.size){root.textContent='Nessun incasso registrato nel periodo.';return;}

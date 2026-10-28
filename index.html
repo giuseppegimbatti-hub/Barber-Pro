@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#f5f7f4" />
   <title>Barber Pro Studio</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=20261028-services1" />
-  <link rel="stylesheet" href="premium.css?v=20261028-services1" />
+  <link rel="stylesheet" href="styles.css?v=20261028-ui-refined1" />
+  <link rel="stylesheet" href="premium.css?v=20261028-ui-refined1" />
 </head>
 <body>
   <div class="app-shell">
@@ -33,7 +33,7 @@
           <p class="eyebrow">Gestionale barbiere</p>
           <div class="page-heading"><h2 id="pageTitle">Agenda</h2><button id="openHelpBtn" class="help-trigger" type="button" aria-label="Apri la guida di questa sezione" title="Come funziona questa sezione">? <span>Guida</span></button></div>
         </div>
-        <div class="top-actions">
+        <div class="top-actions" id="globalBackupActions">
           <div id="backupNotice" role="status" style="width:100%;font-size:13px;padding:8px 0"></div><button id="exportBtn" class="ghost-btn">Esporta backup</button>
           <label class="ghost-btn file-label">Ripristina backup<input id="restoreBackupFile" type="file" accept="application/json" hidden></label>
           <label class="ghost-btn file-label">Importa dati<input id="importFile" type="file" accept="application/json" hidden></label>
@@ -69,14 +69,14 @@
       </section>
 
       <section id="chiusure" class="view">
-        <div class="card"><h3>Ferie e chiusure straordinarie</h3>
+        <div class="card closure-main-card"><h3>Ferie e chiusure straordinarie</h3>
         <p class="muted">Lunedì, domeniche e festività nazionali sono già segnalati in rosso. Puoi comunque inserire appuntamenti in qualsiasi giorno: nei giorni contrassegnati sarà richiesta una conferma.</p>
         <form id="closureForm" class="closure-form">
           <label>Dal giorno<input type="date" id="closureStart" required></label>
           <label>Al giorno<input type="date" id="closureEnd" required></label>
           <label>Motivo<input id="closureReason" maxlength="100" placeholder="Ferie, chiusura straordinaria..."></label>
           <button class="primary-btn" type="submit">Salva chiusura</button>
-        </form></div><div class="card"><h3>Chiusure registrate</h3><div id="closuresList"></div></div>
+        </form></div><div class="card closure-history-card"><h3>Chiusure registrate</h3><div id="closuresList"></div></div>
       </section>
       <section id="report" class="view">
         <div class="card split wrap">
@@ -98,7 +98,7 @@
         </div>
         <div class="card"><h3>Andamento incassi</h3><p class="muted">Solo appuntamenti completati e pagati. Le barre seguono il periodo selezionato.</p><div id="revenueChart" class="revenue-chart" role="img" aria-label="Grafico degli incassi"></div></div>
         <div class="card"><h3>Servizi più richiesti</h3><div id="serviceRanking"></div></div>
-        <div class="card"><pre id="reportText"></pre></div>
+        <details class="card report-details"><summary>Visualizza riepilogo testuale completo</summary><pre id="reportText"></pre></details>
         <div id="clientRanking" class="card client-ranking"></div>
       </section>
       <section id="servizi" class="view">
@@ -128,10 +128,10 @@
         </div>
       </section>
       <section id="backup" class="view">
-        <div class="card"><h3>🛡️ Centro backup</h3><p class="muted">I backup locali sono nello stesso archivio dell'iPad: esporta periodicamente un JSON su iCloud Drive per proteggerti dalla perdita dei dati del browser.</p><p id="backupCenterStatus" role="status"></p>
+        <div class="card backup-main-card"><h3>Backup esterno</h3><p class="muted">I backup locali sono nello stesso archivio dell'iPad: esporta periodicamente un JSON su iCloud Drive per proteggerti dalla perdita dei dati del browser.</p><p id="backupCenterStatus" role="status"></p>
         <div class="backup-actions"><button id="backupExportBtn" class="primary-btn" type="button">⬇ Esporta backup JSON</button><label class="ghost-btn file-label">⬆ Ripristina backup JSON<input id="backupImportFile" type="file" accept="application/json" hidden></label><button id="refreshLocalBtn" class="ghost-btn" type="button">Aggiorna copie locali</button></div>
         <p class="muted">Dopo l'esportazione verifica che il file sia presente in File → iCloud Drive. L'app non può salvarlo automaticamente senza il tuo intervento.</p></div>
-        <div class="card"><h3>Copie locali automatiche</h3><p class="muted" id="autoBackupStatus">Una copia giornaliera fino a 30 giorni; fino a 30 copie protette prima delle modifiche importanti. Non sono backup esterni.</p><button class="ghost-btn" id="restoreLocalBtn" type="button">Mostra le copie locali</button><div id="localBackupList"></div></div>
+        <div class="card backup-local-card"><h3>Copie locali automatiche</h3><p class="muted" id="autoBackupStatus">Una copia giornaliera fino a 30 giorni; fino a 30 copie protette prima delle modifiche importanti. Non sono backup esterni.</p><button class="ghost-btn" id="restoreLocalBtn" type="button">Mostra le copie locali</button><div id="localBackupList"></div></div>
       </section>
     </main>
   </div>
@@ -178,6 +178,6 @@
       </div>
     </div>
   </dialog>
-  <script src="app.js?v=20261028-services1"></script>
+  <script src="app.js?v=20261028-ui-refined1"></script>
 </body>
 </html>
