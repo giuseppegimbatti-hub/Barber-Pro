@@ -22,3 +22,28 @@ Se hai dati salvati nella vecchia versione con server, esporta prima un backup J
 - Usa sempre la stessa installazione dell'app dalla schermata Home: Safari e l'app installata possono avere archivi distinti.
 - GitHub Pages è un sito pubblico: non caricare backup contenenti dati dei clienti nel repository.
 - L'archivio locale non è invulnerabile a cancellazione, guasti o disinstallazione.
+
+## Aggiornamento: WhatsApp, rubrica e copie locali
+- Nella sezione Clienti, inserisci il cellulare oppure importa una vCard `.vcf` esportata da Contatti su iPad. Importazione non sincronizzata: le modifiche successive alla rubrica non sono automatiche.
+- Nell'Agenda, la sezione Promemoria mostra gli appuntamenti di domani. Tocca WhatsApp per aprire il messaggio precompilato e conferma personalmente l'invio. Nessun invio automatico.
+- In Gestionale → Protezione dati, puoi visualizzare e ripristinare le copie locali. Sono salvate nello stesso IndexedDB e non proteggono da cancellazione dei dati del browser o guasti del dispositivo.
+- I backup JSON includono anche la mappa dei cellulari `phones`. I backup precedenti, senza `phones`, restano importabili.
+- Prima di aggiornare il repository, salva un backup JSON esterno su iCloud Drive e verifica che sia leggibile. Aggiorna i file del repository senza eliminare l'app installata sull'iPad.
+- L'importazione vCard di base supporta nomi e numeri comuni, non tutti i formati speciali di Contatti. Controlla omonimi e numeri importati.
+- I dati di contatto sono personali: non caricare file VCF o backup JSON nel repository GitHub pubblico. Usa WhatsApp solo con clienti che hanno accettato di ricevere comunicazioni.
+
+## Protezione locale aggiornata
+- Copia giornaliera all’apertura (se archivio disponibile), conservata fino a 30 giorni; la copia giornaliera non viene sovrascritta dalle modifiche successive.
+- Copie protette prima della cancellazione di un cliente o appuntamento (fino a 30 copie protette).
+- Esportare ogni giorno il JSON in iCloud Drive: le copie IndexedDB possono essere cancellate insieme ai dati del browser.
+- Il ripristino sostituisce l’intero archivio, non un singolo appuntamento.
+
+
+## Aggiornamento anagrafica e WhatsApp (28 ottobre 2026)
+- Nuovo cliente: Nome e cognome, Comune, Cellulare.
+- In Clienti: Comune e Cellulare modificabili; il numero resta nell'anagrafica.
+- Durante la prenotazione il numero è recuperato dal cliente selezionato e, se inserito, salvato nell'anagrafica.
+- Pulsante WhatsApp sulla scheda cliente e su appuntamenti già salvati. L'invio del messaggio è manuale.
+- Backup JSON include `phones` e `communes`; import di backup precedenti supportato.
+- Pubblicare **tutti** i file dello ZIP nella radice del repository, non solo `index.html`.
+- Cache PWA aggiornata con strategia online-prima; per controllare la versione, ricaricare il sito online.

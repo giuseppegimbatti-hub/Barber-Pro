@@ -27,3 +27,13 @@ textarea{width:100%;min-height:84px;border:1px solid rgba(148,163,184,.25);borde
   color:#ffffff;
   box-shadow:0 8px 22px rgba(27,94,32,.38);
 }
+
+.contact-tools,.reminder-panel{margin:12px 0}.contact-tools p,.reminder-panel p{margin:8px 0}.reminder-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line,#ddd)}.client-row input[type=tel]{max-width:180px;min-width:125px}#localBackupList{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+
+/* Anagrafica 2026-10-28: campi espliciti e layout adattivo */
+#clienti .split{flex-wrap:wrap}#clienti .split input{flex:1 1 180px;min-width:160px}#clienti .split button{flex:0 0 auto}
+.client-row{grid-template-columns:minmax(150px,1.4fr) minmax(140px,1fr) minmax(160px,1fr) auto auto}
+.client-info{display:flex;flex-direction:column;gap:5px}.client-info span{color:var(--muted);font-size:13px}
+.client-row input[type=tel]{max-width:none;min-width:0}
+@media(max-width:1100px){.client-row{grid-template-columns:1fr 1fr}.client-info{grid-column:1/-1}.client-row .danger-btn{justify-self:start}}
+@media(max-width:650px){.client-row{grid-template-columns:1fr}.client-info{grid-column:auto}.client-row input{width:100%}}

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1120" />
   <title>Barber Pro Studio</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20261028-2" />
 </head>
 <body>
   <div class="app-shell">
@@ -54,11 +54,11 @@
 
       <section id="clienti" class="view">
         <div class="card split">
-          <input id="newClientName" placeholder="Nome nuovo cliente" />
+          <input id="newClientName" placeholder="Nome e cognome" aria-label="Nome e cognome" /><input id="newClientCommune" placeholder="Comune" aria-label="Comune" /><input id="newClientPhone" type="tel" inputmode="tel" placeholder="Cellulare (es. 3331234567)" aria-label="Cellulare" />
           <button id="addClientBtn" class="primary-btn">Aggiungi cliente</button>
           <label class="ghost-btn file-label">Importa Clienti JSON<input id="importClientsFile" type="file" accept="application/json" hidden></label>
         </div>
-        <div class="card contact-tools"><h3>Rubrica e cellulari</h3><p class="muted">Importa un file .vcf esportato da Contatti. I numeri rimangono su questo iPad e sono inclusi nel backup JSON.</p><label class="ghost-btn file-label">Importa rubrica VCF<input id="importVcfFile" type="file" accept=".vcf,text/vcard,text/x-vcard" hidden></label><p id="contactImportStatus" role="status"></p></div><div id="clientList" class="list"></div>
+        <div class="card contact-tools"><h3>Anagrafica clienti · Comune e cellulare</h3><p class="muted">Importa un file .vcf esportato da Contatti. I numeri rimangono su questo iPad e sono inclusi nel backup JSON.</p><label class="ghost-btn file-label">Importa rubrica VCF<input id="importVcfFile" type="file" accept=".vcf,text/vcard,text/x-vcard" hidden></label><p id="contactImportStatus" role="status"></p></div><div id="clientList" class="list"></div>
       </section>
 
       <section id="report" class="view">
@@ -104,6 +104,6 @@
     </form>
   </dialog>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=20261028-2"></script>
 </body>
 </html>
