@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1120" />
   <title>Barber Pro Studio</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=20261028-2" />
+  <link rel="stylesheet" href="styles.css?v=20261028-4" />
 </head>
 <body>
   <div class="app-shell">
@@ -17,6 +17,7 @@
       </div>
       <nav class="nav">
         <button class="nav-btn active" data-view="agenda">📅 Agenda</button>
+        <button class="nav-btn" data-view="promemoria">💬 Promemoria WhatsApp</button>
         <button class="nav-btn" data-view="clienti">👥 Clienti</button>
         <button class="nav-btn" data-view="report">📊 Gestionale</button>
       </nav>
@@ -49,8 +50,10 @@
           </div>
           <input id="datePicker" type="date" />
         </div>
-        <div class="card reminder-panel"><h3>💬 Promemoria WhatsApp</h3><p class="muted">Appuntamenti di domani: apri il messaggio e conferma l’invio in WhatsApp.</p><div id="tomorrowReminders"></div></div><div id="agendaGrid" class="agenda-grid"></div>
+        <div class="agenda-controls card"><div id="agendaSummary" aria-live="polite"></div><div class="agenda-modes"><button id="compactAgendaBtn" class="ghost-btn active-mode" type="button">▦ Vista compatta</button><button id="detailAgendaBtn" class="ghost-btn" type="button">☰ Vista dettagliata</button></div></div><div id="agendaGrid" class="agenda-grid"></div>
       </section>
+
+      <section id="promemoria" class="view"><div class="card reminder-panel"><h3>💬 Promemoria WhatsApp</h3><p class="muted">Appuntamenti di domani: apri il messaggio e conferma manualmente l’invio in WhatsApp.</p><div id="tomorrowReminders"></div></div></section>
 
       <section id="clienti" class="view">
         <div class="card split">
@@ -104,6 +107,6 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=20261028-2"></script>
+  <script src="app.js?v=20261028-4"></script>
 </body>
 </html>

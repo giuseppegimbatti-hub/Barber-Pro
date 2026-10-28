@@ -37,3 +37,20 @@ textarea{width:100%;min-height:84px;border:1px solid rgba(148,163,184,.25);borde
 .client-row input[type=tel]{max-width:none;min-width:0}
 @media(max-width:1100px){.client-row{grid-template-columns:1fr 1fr}.client-info{grid-column:1/-1}.client-row .danger-btn{justify-self:start}}
 @media(max-width:650px){.client-row{grid-template-columns:1fr}.client-info{grid-column:auto}.client-row input{width:100%}}
+
+/* Agenda compatta e promemoria separati */
+.agenda-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:12px}
+#agendaSummary{font-weight:750}.agenda-modes{display:flex;gap:8px;flex-wrap:wrap}.agenda-modes .ghost-btn{padding:9px 12px}.active-mode{outline:2px solid var(--gold)}
+.compact-grid{grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px}
+.compact-slot{border-radius:13px;border:2px solid transparent;padding:12px 8px;min-height:75px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;cursor:pointer;font:inherit}
+.compact-slot strong{font-size:20px}.compact-slot span{font-size:12px;font-weight:750}.compact-slot.available{background:#dcfce7;color:#14532d;border-color:#86efac}.compact-slot.occupied{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.compact-slot:focus-visible{outline:3px solid var(--gold);outline-offset:2px}.slot-quick-details{padding:15px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}.slot-quick-details h3{width:100%}
+.reminder-panel{padding:20px}.reminder-panel h3{margin-bottom:8px}
+@media(min-width:901px){.compact-grid{grid-template-columns:repeat(6,minmax(100px,1fr))}}
+@media(max-width:900px){.nav{grid-template-columns:repeat(2,1fr)}.compact-grid{grid-template-columns:repeat(4,minmax(70px,1fr))}.compact-slot{min-height:67px;padding:8px 3px}.compact-slot strong{font-size:17px}.compact-slot span{font-size:11px}}
+@media(max-width:420px){.compact-grid{grid-template-columns:repeat(3,minmax(70px,1fr))}}
+
+/* Domeniche e festivita nazionali italiane in rosso, anche se selezionate. */
+.day-pill.holiday,.day-pill.holiday:hover{background:#b91c1c;border-color:#ef4444;color:#fff}
+.day-pill.holiday.active{background:linear-gradient(135deg,#991b1b,#dc2626);border-color:#fca5a5;color:#fff;box-shadow:0 8px 22px rgba(185,28,28,.35)}
+.day-pill .holiday-mark{display:block;font-size:10px;margin-top:3px;font-weight:700;line-height:1.1}

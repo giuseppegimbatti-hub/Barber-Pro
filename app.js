@@ -61,9 +61,57 @@ function updateBackupNotice(){
   el.style.display='block';
 }
 function startOfWeek(d){const x=new Date(d);const day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);x.setHours(0,0,0,0);return x}
-function setView(name){document.querySelectorAll('.view,.nav-btn').forEach(e=>e.classList.remove('active'));$(name).classList.add('active');document.querySelector(`[data-view="${name}"]`).classList.add('active');$('pageTitle').textContent={agenda:'Agenda',clienti:'Clienti',report:'Gestionale'}[name];if(name==='report')renderReport()}
-function renderWeek(){const base=startOfWeek(state.date);$('weekStrip').innerHTML='';['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].forEach((n,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);const b=document.createElement('button');b.className='day-pill'+(iso(d)===iso(state.date)?' active':'');b.innerHTML=`<span>${n}</span><strong>${d.getDate()}</strong>`;b.onclick=()=>{state.date=d;renderAll()};$('weekStrip').appendChild(b)})}
-function renderAgenda(){const ds=iso(state.date);$('datePicker').value=ds;$('selectedDateLabel').textContent=state.date.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});$('agendaGrid').innerHTML='';slots.forEach(slot=>{const apps=state.appointments.filter(a=>a.date===ds&&a.time===slot);const row=document.createElement('div');row.className='slot';row.innerHTML=`<div class="slot-time">${slot}</div><div class="apps">${apps.length?apps.map(a=>`<div class="app-card" data-id="${a.id}"><b>${a.client}</b><br><span class="muted">${a.service} · ${euro(a.price)}</span></div>`).join(''):'<div class="empty">Libero</div>'}</div><button class="primary-btn">+ Prenota</button>`;row.querySelector('button').onclick=()=>openAppointment({time:slot});row.querySelectorAll('.app-card').forEach(c=>c.onclick=()=>openAppointment(state.appointments.find(a=>a.id===c.dataset.id)));$('agendaGrid').appendChild(row)})}
+function setView(name){document.querySelectorAll('.view,.nav-btn').forEach(e=>e.classList.remove('active'));$(name).classList.add('active');document.querySelector(`[data-view="${name}"]`).classList.add('active');$('pageTitle').textContent={agenda:'Agenda',clienti:'Clienti',report:'Gestionale',promemoria:'Promemoria WhatsApp'}[name];if(name==='report')renderReport();if(name==='promemoria')renderTomorrowReminders()}
+// Festivita nazionali italiane, comprese Pasqua e Lunedi dell'Angelo.
+function easterSunday(year){
+ const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4;
+ const f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30;
+ const i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k+7)%7;
+ const m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31);
+ const day=((h+l-7*m+114)%31)+1;return new Date(year,month-1,day);
+}
+function italianHoliday(date){
+ const fixed={'01-01':'Capodanno','01-06':'Epifania','04-25':'Festa della Liberazione','05-01':'Festa del Lavoro','06-02':'Festa della Repubblica','08-15':'Ferragosto','11-01':'Ognissanti','12-08':'Immacolata Concezione','12-25':'Natale','12-26':'Santo Stefano'};
+ const key=`${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+ if(fixed[key])return fixed[key];
+ const easter=easterSunday(date.getFullYear());const easterMonday=new Date(easter);easterMonday.setDate(easter.getDate()+1);
+ if(iso(date)===iso(easter))return 'Pasqua';if(iso(date)===iso(easterMonday))return 'Lunedi dell’Angelo';
+ return '';
+}
+function renderWeek(){const base=startOfWeek(state.date);$('weekStrip').innerHTML='';['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].forEach((n,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);const b=document.createElement('button');const holiday=italianHoliday(d);const isSunday=d.getDay()===0;b.className='day-pill'+(holiday||isSunday?' holiday':'')+(iso(d)===iso(state.date)?' active':'');if(holiday){b.title=holiday;b.setAttribute('aria-label',`${n} ${d.getDate()}: ${holiday}`)}b.innerHTML=`<span>${n}</span><strong>${d.getDate()}</strong>${holiday?'<small class="holiday-mark">Festivo</small>':''}`;b.onclick=()=>{state.date=d;renderAll()};$('weekStrip').appendChild(b)})}
+let agendaMode='compact';
+function renderAgenda(){
+ const ds=iso(state.date);$('datePicker').value=ds;
+ $('selectedDateLabel').textContent=state.date.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+ const grid=$('agendaGrid');grid.replaceChildren();
+ const dayApps=state.appointments.filter(a=>a.date===ds);
+ const busy=slots.filter(t=>dayApps.some(a=>a.time===t)).length;
+ $('agendaSummary').textContent=`${slots.length-busy} orari liberi · ${busy} occupati · ${dayApps.length} appuntamenti`;
+ $('compactAgendaBtn').classList.toggle('active-mode',agendaMode==='compact');
+ $('detailAgendaBtn').classList.toggle('active-mode',agendaMode==='detail');
+ grid.className=agendaMode==='compact'?'agenda-grid compact-grid':'agenda-grid';
+ if(agendaMode==='compact'){
+  for(const slot of slots){
+   const apps=dayApps.filter(a=>a.time===slot);
+   const b=document.createElement('button');b.type='button';b.className='compact-slot '+(apps.length?'occupied':'available');
+   const time=document.createElement('strong');time.textContent=slot;
+   const label=document.createElement('span');label.textContent=apps.length?`${apps.length} appuntament${apps.length===1?'o':'i'}`:'Libero';
+   b.append(time,label);b.title=apps.length?apps.map(a=>a.client).join(', '):'Prenota alle '+slot;
+   b.onclick=()=>{if(!apps.length){openAppointment({time:slot});return;}showSlotAppointments(slot,apps)};
+   grid.appendChild(b);
+  }
+  return;
+ }
+ slots.forEach(slot=>{const apps=dayApps.filter(a=>a.time===slot);const row=document.createElement('div');row.className='slot';row.innerHTML=`<div class="slot-time">${slot}</div><div class="apps">${apps.length?apps.map(a=>`<div class="app-card" data-id="${escapeHtml(a.id)}"><b>${escapeHtml(a.client)}</b><br><span class="muted">${escapeHtml(a.service)} · ${euro(a.price)}</span></div>`).join(''):'<div class="empty">Libero</div>'}</div><button class="primary-btn">+ Prenota</button>`;row.querySelector('button').onclick=()=>openAppointment({time:slot});row.querySelectorAll('.app-card').forEach(c=>c.onclick=()=>openAppointment(state.appointments.find(a=>a.id===c.dataset.id)));grid.appendChild(row)});
+}
+function showSlotAppointments(time,apps){
+ const grid=$('agendaGrid');const existing=$('slotQuickDetails');if(existing)existing.remove();
+ const panel=document.createElement('div');panel.id='slotQuickDetails';panel.className='slot-quick-details card';
+ const heading=document.createElement('h3');heading.textContent=`Ore ${time} · ${apps.length} appuntamenti`;panel.append(heading);
+ for(const a of apps){const b=document.createElement('button');b.className='ghost-btn';b.textContent=`${a.client} · ${a.service}`;b.onclick=()=>openAppointment(a);panel.append(b)}
+ const add=document.createElement('button');add.className='primary-btn';add.textContent='+ Aggiungi appuntamento';add.onclick=()=>openAppointment({time});panel.append(add);
+ grid.before(panel);panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function clientKey(name){return normalizeClientName(name).toLocaleLowerCase('it-IT');}
 function phoneFor(name){return state.phones[clientKey(name)]||'';}
@@ -202,7 +250,7 @@ function importClientsFromJsonText(text){
 }
 
 function renderAll(){renderWeek();renderAgenda();renderClients();renderTomorrowReminders();renderStats();renderReport()}
-document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>setView(b.dataset.view));$('prevWeek').onclick=()=>{state.date.setDate(state.date.getDate()-7);renderAll()};$('nextWeek').onclick=()=>{state.date.setDate(state.date.getDate()+7);renderAll()};$('datePicker').onchange=e=>{state.date=new Date(e.target.value);renderAll()};$('reportDate').value=iso(new Date());$('periodFilter').onchange=renderReport;$('reportDate').onchange=renderReport;$('printReportBtn').onclick=()=>window.print();$('printClientRankingBtn').onclick=printClientRanking;$('addClientBtn').onclick=()=>{const n=normalizeClientName($('newClientName').value);const raw=$('newClientPhone').value.trim();const phone=normalizePhone(raw);if(!n){alert('Inserisci il nome del cliente.');return;}if(state.clients.some(c=>clientKey(c)===clientKey(n))){alert('Cliente già presente: modifica i dati nella scheda sottostante.');return;}if(raw&&!phone){alert('Numero di cellulare non valido.');return;}state.clients.push(n);if(phone)state.phones[clientKey(n)]=phone;const comune=$('newClientCommune').value.trim();if(comune)state.communes[clientKey(n)]=comune;['newClientName','newClientPhone','newClientCommune'].forEach(id=>$(id).value='');save();renderAll()};
+$('compactAgendaBtn').onclick=()=>{agendaMode='compact';renderAgenda()};$('detailAgendaBtn').onclick=()=>{agendaMode='detail';renderAgenda()};document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>setView(b.dataset.view));$('prevWeek').onclick=()=>{state.date.setDate(state.date.getDate()-7);renderAll()};$('nextWeek').onclick=()=>{state.date.setDate(state.date.getDate()+7);renderAll()};$('datePicker').onchange=e=>{state.date=new Date(e.target.value);renderAll()};$('reportDate').value=iso(new Date());$('periodFilter').onchange=renderReport;$('reportDate').onchange=renderReport;$('printReportBtn').onclick=()=>window.print();$('printClientRankingBtn').onclick=printClientRanking;$('addClientBtn').onclick=()=>{const n=normalizeClientName($('newClientName').value);const raw=$('newClientPhone').value.trim();const phone=normalizePhone(raw);if(!n){alert('Inserisci il nome del cliente.');return;}if(state.clients.some(c=>clientKey(c)===clientKey(n))){alert('Cliente già presente: modifica i dati nella scheda sottostante.');return;}if(raw&&!phone){alert('Numero di cellulare non valido.');return;}state.clients.push(n);if(phone)state.phones[clientKey(n)]=phone;const comune=$('newClientCommune').value.trim();if(comune)state.communes[clientKey(n)]=comune;['newClientName','newClientPhone','newClientCommune'].forEach(id=>$(id).value='');save();renderAll()};
 $('importClientsFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{importClientsFromJsonText(r.result)}catch(err){alert('File clienti JSON non valido. Deve contenere una lista di nomi, oppure {clients:[...]} / {clienti:[...]}')}};r.readAsText(f);e.target.value=''};
 $('exportBtn').onclick=async()=>{
   await saveQueue;
