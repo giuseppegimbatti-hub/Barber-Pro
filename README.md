@@ -49,3 +49,47 @@ Se hai dati salvati nella vecchia versione con server, esporta prima un backup J
 - Cache PWA aggiornata con strategia online-prima; per controllare la versione, ricaricare il sito online.
 
 Aggiornamento: lunedi contrassegnati in rosso come riposo settimanale (prenotazioni non bloccate).
+
+
+## Fase 2 - Agenda e chiusure
+- La vista compatta mostra gli slot dalle 08:00 alle 21:00.
+- Nuova sezione Ferie e chiusure: intervalli con motivo, eliminazione, evidenziazione in calendario.
+- Nei giorni di riposo/chiusura/festivi, il salvataggio dell'appuntamento chiede conferma, ma resta sempre possibile.
+- Le chiusure sono salvate in IndexedDB e incluse nei backup JSON e nelle copie locali.
+
+
+## Fase 3 — WhatsApp e clienti
+- Conferma esplicita quando il cellulare di un cliente cambia, sia in anagrafica sia nella prenotazione.
+- Promemoria di oggi/domani: Da inviare, Aperto su WhatsApp, Inviato (confermato manualmente).
+- L'apertura del link WhatsApp non garantisce che il messaggio sia stato effettivamente spedito.
+- Ricerca clienti per nome o cellulare; storico visite con ultima visita e totale incassato.
+- Stati dei promemoria inclusi nel backup JSON e nelle copie locali; ripristino anche delle chiusure.
+
+
+## Fase 4 — Gestionale avanzato e Centro backup
+- Grafico incassi per periodo (solo appuntamenti completati e pagati).
+- Servizi più richiesti sulla base degli appuntamenti completati.
+- Classifica per numero di visite completate, anche se non ancora pagate.
+- Centro backup nel menu laterale con esportazione/importazione JSON, elenco copie locali e indicatore dell'ultimo backup esterno confermato.
+- Copie automatiche locali e compatibilità con gli archivi precedenti mantenute.
+- Nota: il salvataggio in iCloud Drive deve essere confermato dall'utente.
+
+
+## Edizione Premium Light
+Nuovo tema chiaro verde bosco, superfici bianche, contrasto migliorato, navigazione e agenda ottimizzate per iPad. Le funzionalità JavaScript e i dati locali restano invariati.
+
+
+## Premium Light — Guide a pop-up e ricerca cliente
+- Il pulsante **? Guida** accanto al titolo apre la guida contestuale della sezione.
+- La guida si apre automaticamente solo alla prima visita di ogni sezione, usando un flag locale.
+- I suggerimenti descrittivi rimangono disponibili nelle guide, ma la selezione cliente usa un vero pop-up.
+- In Prenotazione, **Cerca cliente** apre un elenco filtrabile per nome o cellulare e permette di usare un nuovo nome.
+- La selezione di un cliente esistente riempie automaticamente nome e cellulare.
+
+## Nuovo: Servizi e impostazioni
+- Nel menu laterale **Servizi e impostazioni** puoi cambiare il nome mostrato nel gestionale.
+- Puoi aggiungere, rinominare, eliminare servizi e modificarne prezzo e durata.
+- I servizi eliminati non vengono cancellati dallo storico; i prezzi degli appuntamenti già registrati non cambiano.
+- Le modifiche al listino e al nome sono salvate in IndexedDB e incluse nel backup JSON.
+- Il nome visualizzato sotto l'icona PWA già installata su iPad non cambia necessariamente: è definito dal manifest pubblicato e può richiedere una nuova installazione del collegamento. Cambiare il nome in-app non modifica automaticamente il manifest statico.
+- La durata è un attributo del listino; la griglia dell'Agenda mantiene gli slot di 30 minuti e non blocca automaticamente gli slot successivi.

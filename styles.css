@@ -54,3 +54,20 @@ textarea{width:100%;min-height:84px;border:1px solid rgba(148,163,184,.25);borde
 .day-pill.holiday,.day-pill.holiday:hover{background:#b91c1c;border-color:#ef4444;color:#fff}
 .day-pill.holiday.active{background:linear-gradient(135deg,#991b1b,#dc2626);border-color:#fca5a5;color:#fff;box-shadow:0 8px 22px rgba(185,28,28,.35)}
 .day-pill .holiday-mark{display:block;font-size:10px;margin-top:3px;font-weight:700;line-height:1.1}
+
+.client-history{min-width:180px;flex:1 1 100%;padding:8px 12px;background:#f6f9f6;border-radius:10px}.client-history summary{cursor:pointer;font-weight:600}.history-line{padding:7px 0;border-top:1px solid #dde6dd;font-size:13px}.payment-check{display:flex;align-items:center;gap:9px}.payment-check input{width:auto}
+
+.closure-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;margin-top:18px}.closure-form label{display:flex;flex-direction:column;gap:6px}.closure-form input{width:100%}.closure-row{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #e1e5e8;padding:10px 0;flex-wrap:wrap}
+
+.reminder-row{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:12px 0;border-bottom:1px solid #e3e8e3}
+.reminder-row>span:first-child{flex:1 1 180px;font-weight:600}
+.reminder-status{font-size:12px;border-radius:99px;padding:5px 9px;background:#fef3c7;color:#92400e}
+.reminder-status.opened{background:#dbeafe;color:#1e40af}
+.reminder-status.sent{background:#dcfce7;color:#166534}
+#clientSearch{display:block;width:100%;margin-top:8px}
+
+/* Fase 4: grafici e Centro backup */
+.revenue-chart{display:flex;align-items:flex-end;gap:12px;overflow-x:auto;min-height:205px;padding:12px 4px 4px}
+.revenue-bar-item{min-width:66px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;font-size:12px;text-align:center}
+.revenue-bar-item strong{font-size:12px;white-space:nowrap}.revenue-bar{width:36px;background:linear-gradient(180deg,#46a55d,#196b34);border-radius:6px 6px 0 0;min-height:3px}.revenue-bar-item span{max-width:85px;overflow-wrap:anywhere}
+.backup-actions{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}#backupCenterStatus{font-weight:600;line-height:1.6}#localBackupList{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}

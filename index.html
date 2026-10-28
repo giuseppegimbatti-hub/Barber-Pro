@@ -3,23 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b1120" />
+  <meta name="theme-color" content="#f5f7f4" />
   <title>Barber Pro Studio</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=20261028-5" />
+  <link rel="stylesheet" href="styles.css?v=20261028-services1" />
+  <link rel="stylesheet" href="premium.css?v=20261028-services1" />
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark">✂</div>
-        <div><h1>Barber Pro</h1><p>Studio Manager</p></div>
+        <div><h1 data-app-name>Barber Pro</h1><p>Studio Manager</p></div>
       </div>
       <nav class="nav">
         <button class="nav-btn active" data-view="agenda">📅 Agenda</button>
         <button class="nav-btn" data-view="promemoria">💬 Promemoria WhatsApp</button>
         <button class="nav-btn" data-view="clienti">👥 Clienti</button>
+        <button class="nav-btn" data-view="chiusure">🏖️ Ferie e chiusure</button>
         <button class="nav-btn" data-view="report">📊 Gestionale</button>
+        <button class="nav-btn" data-view="backup">🛡️ Centro backup</button>
+        <button class="nav-btn" data-view="servizi">✂️ Servizi e impostazioni</button>
       </nav>
     </aside>
 
@@ -27,7 +31,7 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">Gestionale barbiere</p>
-          <h2 id="pageTitle">Agenda</h2>
+          <div class="page-heading"><h2 id="pageTitle">Agenda</h2><button id="openHelpBtn" class="help-trigger" type="button" aria-label="Apri la guida di questa sezione" title="Come funziona questa sezione">? <span>Guida</span></button></div>
         </div>
         <div class="top-actions">
           <div id="backupNotice" role="status" style="width:100%;font-size:13px;padding:8px 0"></div><button id="exportBtn" class="ghost-btn">Esporta backup</button>
@@ -53,7 +57,7 @@
         <div class="agenda-controls card"><div id="agendaSummary" aria-live="polite"></div><div class="agenda-modes"><button id="compactAgendaBtn" class="ghost-btn active-mode" type="button">▦ Vista compatta</button><button id="detailAgendaBtn" class="ghost-btn" type="button">☰ Vista dettagliata</button></div></div><div id="agendaGrid" class="agenda-grid"></div>
       </section>
 
-      <section id="promemoria" class="view"><div class="card reminder-panel"><h3>💬 Promemoria WhatsApp</h3><p class="muted">Appuntamenti di domani: apri il messaggio e conferma manualmente l’invio in WhatsApp.</p><div id="tomorrowReminders"></div></div></section>
+      <section id="promemoria" class="view"><div class="card reminder-panel"><h3>💬 Promemoria WhatsApp</h3><p class="muted">Aprire WhatsApp segna il promemoria come “Aperto su WhatsApp”, non come inviato. Puoi confermare manualmente l’invio.</p><label>Visualizza <select id="reminderDayFilter"><option value="tomorrow">Domani</option><option value="today">Oggi</option></select></label><div id="tomorrowReminders"></div></div></section>
 
       <section id="clienti" class="view">
         <div class="card split">
@@ -61,9 +65,19 @@
           <button id="addClientBtn" class="primary-btn">Aggiungi cliente</button>
           <label class="ghost-btn file-label">Importa Clienti JSON<input id="importClientsFile" type="file" accept="application/json" hidden></label>
         </div>
-        <div class="card contact-tools"><h3>Anagrafica clienti · Comune e cellulare</h3><p class="muted">Importa un file .vcf esportato da Contatti. I numeri rimangono su questo iPad e sono inclusi nel backup JSON.</p><label class="ghost-btn file-label">Importa rubrica VCF<input id="importVcfFile" type="file" accept=".vcf,text/vcard,text/x-vcard" hidden></label><p id="contactImportStatus" role="status"></p></div><div id="clientList" class="list"></div>
+        <div class="card contact-tools"><h3>Anagrafica clienti · Comune e cellulare</h3><p class="muted">Importa un file .vcf esportato da Contatti. I numeri rimangono su questo iPad e sono inclusi nel backup JSON.</p><label class="ghost-btn file-label">Importa rubrica VCF<input id="importVcfFile" type="file" accept=".vcf,text/vcard,text/x-vcard" hidden></label><p id="contactImportStatus" role="status"></p></div><div class="card"><label>Cerca cliente per nome o cellulare<input id="clientSearch" type="search" placeholder="Cerca cliente o numero..." autocomplete="off"></label></div><div id="clientList" class="list"></div>
       </section>
 
+      <section id="chiusure" class="view">
+        <div class="card"><h3>Ferie e chiusure straordinarie</h3>
+        <p class="muted">Lunedì, domeniche e festività nazionali sono già segnalati in rosso. Puoi comunque inserire appuntamenti in qualsiasi giorno: nei giorni contrassegnati sarà richiesta una conferma.</p>
+        <form id="closureForm" class="closure-form">
+          <label>Dal giorno<input type="date" id="closureStart" required></label>
+          <label>Al giorno<input type="date" id="closureEnd" required></label>
+          <label>Motivo<input id="closureReason" maxlength="100" placeholder="Ferie, chiusura straordinaria..."></label>
+          <button class="primary-btn" type="submit">Salva chiusura</button>
+        </form></div><div class="card"><h3>Chiusure registrate</h3><div id="closuresList"></div></div>
+      </section>
       <section id="report" class="view">
         <div class="card split wrap">
           <select id="periodFilter">
@@ -82,8 +96,42 @@
           <div class="metric card"><span>Appuntamenti</span><strong id="metricCount">0</strong></div>
           <div class="metric card"><span>Clienti</span><strong id="metricClients">0</strong></div>
         </div>
-        <div class="card"><h3>Protezione dati</h3><p class="muted" id="autoBackupStatus">Copie giornaliere automatiche fino a 30 giorni e copie protette prima delle cancellazioni. I backup locali non sostituiscono iCloud Drive.</p><button class="ghost-btn" id="restoreLocalBtn" type="button">Ripristina una copia locale</button><div id="localBackupList"></div></div><div class="card"><pre id="reportText"></pre></div>
+        <div class="card"><h3>Andamento incassi</h3><p class="muted">Solo appuntamenti completati e pagati. Le barre seguono il periodo selezionato.</p><div id="revenueChart" class="revenue-chart" role="img" aria-label="Grafico degli incassi"></div></div>
+        <div class="card"><h3>Servizi più richiesti</h3><div id="serviceRanking"></div></div>
+        <div class="card"><pre id="reportText"></pre></div>
         <div id="clientRanking" class="card client-ranking"></div>
+      </section>
+      <section id="servizi" class="view">
+        <div class="card">
+          <h3>Nome del programma</h3>
+          <p class="muted">Personalizza il nome visualizzato nel gestionale. Il nome dell’icona già installata sull’iPad potrebbe rimanere invariato.</p>
+          <div class="settings-name-row">
+            <label for="businessNameInput">Nome attività o programma</label>
+            <input id="businessNameInput" maxlength="40" placeholder="Es. Barber Pro">
+            <button id="saveBusinessNameBtn" type="button" class="primary-btn">Salva nome</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Listino servizi</h3>
+          <p class="muted">Modifica prezzi e durata, rinomina o elimina un servizio. Le prenotazioni già salvate conservano il servizio e il prezzo originali.</p>
+          <div class="service-list-head"><span>Servizio</span><span>Prezzo €</span><span>Durata</span></div>
+          <div id="serviceSettingsList"></div>
+        </div>
+        <div class="card">
+          <h3>Aggiungi un servizio</h3>
+          <form id="addServiceForm" class="service-add-form">
+            <label>Nome servizio<input id="newServiceLabel" maxlength="70" required placeholder="Es. Barba e shampoo"></label>
+            <label>Prezzo (€)<input id="newServicePrice" type="number" min="0" max="10000" step="0.01" required inputmode="decimal"></label>
+            <label>Durata<select id="newServiceDuration"><option value="0.5">15 min</option><option value="1" selected>30 min</option><option value="1.5">45 min</option><option value="2">60 min</option><option value="3">90 min</option><option value="4">120 min</option></select></label>
+            <button class="primary-btn" type="submit">+ Aggiungi servizio</button>
+          </form>
+        </div>
+      </section>
+      <section id="backup" class="view">
+        <div class="card"><h3>🛡️ Centro backup</h3><p class="muted">I backup locali sono nello stesso archivio dell'iPad: esporta periodicamente un JSON su iCloud Drive per proteggerti dalla perdita dei dati del browser.</p><p id="backupCenterStatus" role="status"></p>
+        <div class="backup-actions"><button id="backupExportBtn" class="primary-btn" type="button">⬇ Esporta backup JSON</button><label class="ghost-btn file-label">⬆ Ripristina backup JSON<input id="backupImportFile" type="file" accept="application/json" hidden></label><button id="refreshLocalBtn" class="ghost-btn" type="button">Aggiorna copie locali</button></div>
+        <p class="muted">Dopo l'esportazione verifica che il file sia presente in File → iCloud Drive. L'app non può salvarlo automaticamente senza il tuo intervento.</p></div>
+        <div class="card"><h3>Copie locali automatiche</h3><p class="muted" id="autoBackupStatus">Una copia giornaliera fino a 30 giorni; fino a 30 copie protette prima delle modifiche importanti. Non sono backup esterni.</p><button class="ghost-btn" id="restoreLocalBtn" type="button">Mostra le copie locali</button><div id="localBackupList"></div></div>
       </section>
     </main>
   </div>
@@ -93,12 +141,12 @@
       <button id="closeAppointmentDialog" class="modal-close" type="button" aria-label="Chiudi">×</button>
       <h3 id="appointmentTitle">Nuovo appuntamento</h3>
       <input type="hidden" id="editingAppointmentId" />
-      <label>Cliente<input id="appointmentClient" list="clientSuggestions" required placeholder="Nome cliente"></label>
-      <datalist id="clientSuggestions"></datalist>
+      <label>Cliente</label>
+      <div class="client-picker-field"><input id="appointmentClient" required placeholder="Seleziona o scrivi un nome" autocomplete="off"><button id="openClientPickerBtn" class="ghost-btn" type="button">🔎 Cerca cliente</button></div>
       <label>Cellulare cliente (facoltativo)<input id="appointmentPhone" type="tel" inputmode="tel" placeholder="Es. +39 333 1234567"></label><button type="button" id="whatsappAppointmentBtn" class="ghost-btn hidden">💬 Apri WhatsApp</button><label>Servizio<select id="appointmentService"></select></label>
       <label>Prezzo opzionale (€)<input id="appointmentCustomPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Lascia vuoto per usare il prezzo del servizio"></label>
       <label>Ora<input id="appointmentTime" type="time" required></label>
-      <label>Note appuntamento<textarea id="appointmentNotes" rows="3" placeholder="Es. preferenze taglio, ritardo, promemoria, note cliente..."></textarea></label>
+      <label>Stato appuntamento<select id="appointmentStatus"><option value="booked">Prenotato</option><option value="completed">Completato</option><option value="cancelled">Annullato</option><option value="noshow">Cliente assente</option></select></label><label class="payment-check"><input type="checkbox" id="appointmentPaid"> Pagamento ricevuto (conteggiato solo se completato)</label><label>Note appuntamento<textarea id="appointmentNotes" rows="3" placeholder="Es. preferenze taglio, ritardo, promemoria, note cliente..."></textarea></label>
       <div class="modal-actions">
         <button id="deleteAppointmentBtn" type="button" class="danger-btn hidden">Elimina</button>
         <button id="cancelAppointmentBtn" type="button" class="ghost-btn">Annulla</button>
@@ -107,6 +155,29 @@
     </form>
   </dialog>
 
-  <script src="app.js?v=20261028-5"></script>
+  <dialog id="helpDialog" class="modal helper-modal" aria-labelledby="helpTitle">
+    <div class="popup-body">
+      <button type="button" class="modal-close" id="closeHelpBtn" aria-label="Chiudi guida">×</button>
+      <p class="popup-eyebrow">GUIDA RAPIDA</p><h3 id="helpTitle"></h3>
+      <p class="muted" id="helpIntro"></p>
+      <ul id="helpItems" class="help-items"></ul>
+      <div class="popup-actions"><button id="dismissHelpBtn" class="primary-btn" type="button">Ho capito</button></div>
+    </div>
+  </dialog>
+  <dialog id="clientPickerDialog" class="modal picker-modal" aria-labelledby="clientPickerTitle">
+    <div class="popup-body">
+      <button type="button" class="modal-close" id="closeClientPickerBtn" aria-label="Chiudi selezione cliente">×</button>
+      <p class="popup-eyebrow">PRENOTAZIONE RAPIDA</p><h3 id="clientPickerTitle">Seleziona cliente</h3>
+      <label for="clientPickerSearch">Cerca per nome o cellulare</label>
+      <input id="clientPickerSearch" type="search" placeholder="Scrivi nome o numero…" autocomplete="off">
+      <div id="clientPickerResults" class="picker-results" role="list"></div>
+      <div class="picker-new">
+        <label for="clientPickerNewName">Nuovo cliente</label>
+        <input id="clientPickerNewName" placeholder="Nome e cognome" autocomplete="off">
+        <button id="clientPickerNewBtn" class="primary-btn" type="button">+ Usa nuovo cliente</button>
+      </div>
+    </div>
+  </dialog>
+  <script src="app.js?v=20261028-services1"></script>
 </body>
 </html>
