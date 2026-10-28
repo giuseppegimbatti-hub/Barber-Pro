@@ -47,3 +47,5 @@ Se hai dati salvati nella vecchia versione con server, esporta prima un backup J
 - Backup JSON include `phones` e `communes`; import di backup precedenti supportato.
 - Pubblicare **tutti** i file dello ZIP nella radice del repository, non solo `index.html`.
 - Cache PWA aggiornata con strategia online-prima; per controllare la versione, ricaricare il sito online.
+
+Aggiornamento: lunedi contrassegnati in rosso come riposo settimanale (prenotazioni non bloccate).

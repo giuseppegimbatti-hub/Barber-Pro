@@ -50,7 +50,7 @@ textarea{width:100%;min-height:84px;border:1px solid rgba(148,163,184,.25);borde
 @media(max-width:900px){.nav{grid-template-columns:repeat(2,1fr)}.compact-grid{grid-template-columns:repeat(4,minmax(70px,1fr))}.compact-slot{min-height:67px;padding:8px 3px}.compact-slot strong{font-size:17px}.compact-slot span{font-size:11px}}
 @media(max-width:420px){.compact-grid{grid-template-columns:repeat(3,minmax(70px,1fr))}}
 
-/* Domeniche e festivita nazionali italiane in rosso, anche se selezionate. */
+/* Lunedi di riposo, domeniche e festivita nazionali in rosso, anche se selezionati. */
 .day-pill.holiday,.day-pill.holiday:hover{background:#b91c1c;border-color:#ef4444;color:#fff}
 .day-pill.holiday.active{background:linear-gradient(135deg,#991b1b,#dc2626);border-color:#fca5a5;color:#fff;box-shadow:0 8px 22px rgba(185,28,28,.35)}
 .day-pill .holiday-mark{display:block;font-size:10px;margin-top:3px;font-weight:700;line-height:1.1}
