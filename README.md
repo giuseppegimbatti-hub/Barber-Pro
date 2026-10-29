@@ -93,3 +93,9 @@ Nuovo tema chiaro verde bosco, superfici bianche, contrasto migliorato, navigazi
 - Le modifiche al listino e al nome sono salvate in IndexedDB e incluse nel backup JSON.
 - Il nome visualizzato sotto l'icona PWA già installata su iPad non cambia necessariamente: è definito dal manifest pubblicato e può richiedere una nuova installazione del collegamento. Cambiare il nome in-app non modifica automaticamente il manifest statico.
 - La durata è un attributo del listino; la griglia dell'Agenda mantiene gli slot di 30 minuti e non blocca automaticamente gli slot successivi.
+
+
+## v18: Appuntamenti annullati
+Gli appuntamenti annullati sono nascosti dalle viste compatta e dettagliata dell’Agenda e non occupano gli slot. Il pulsante «Appuntamenti annullati» apre l’elenco della data selezionata e permette il ripristino previa conferma.
+
+Backup: esportazioni nominate BarberPro_Backup_GG-MM-AAAA_HH-MM-SS.json; copie locali visualizzate con data e ora effettive.

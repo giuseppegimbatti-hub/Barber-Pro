@@ -54,7 +54,7 @@
           </div>
           <input id="datePicker" type="date" />
         </div>
-        <div class="agenda-controls card"><div id="agendaSummary" aria-live="polite"></div><div class="agenda-modes"><button id="compactAgendaBtn" class="ghost-btn active-mode" type="button">▦ Vista compatta</button><button id="detailAgendaBtn" class="ghost-btn" type="button">☰ Vista dettagliata</button></div></div><div id="agendaGrid" class="agenda-grid"></div>
+        <div class="agenda-controls card"><div id="agendaSummary" aria-live="polite"></div><div class="agenda-modes"><button id="compactAgendaBtn" class="ghost-btn active-mode" type="button">▦ Vista compatta</button><button id="detailAgendaBtn" class="ghost-btn" type="button">☰ Vista dettagliata</button></div></div><div class="cancelled-archive-bar"><button id="cancelledAppointmentsBtn" class="ghost-btn cancelled-archive-trigger" type="button">↶ Appuntamenti annullati <span id="cancelledAppointmentsCount" class="cancelled-archive-count">0</span></button></div><div id="agendaGrid" class="agenda-grid"></div>
       </section>
 
       <section id="promemoria" class="view"><div class="card reminder-panel"><h3>💬 Promemoria WhatsApp</h3><p class="muted">Aprire WhatsApp segna il promemoria come “Aperto su WhatsApp”, non come inviato. Puoi confermare manualmente l’invio.</p><label>Visualizza <select id="reminderDayFilter"><option value="tomorrow">Domani</option><option value="today">Oggi</option></select></label><div id="tomorrowReminders"></div></div></section>
@@ -136,6 +136,14 @@
     </main>
   </div>
 
+  <dialog id="cancelledAppointmentsDialog" class="modal cancelled-archive-dialog" aria-labelledby="cancelledArchiveTitle">
+    <div class="cancelled-archive-content">
+      <button id="closeCancelledArchiveBtn" type="button" class="modal-close" aria-label="Chiudi archivio">×</button>
+      <h3 id="cancelledArchiveTitle">Appuntamenti annullati</h3>
+      <p id="cancelledArchiveDate" class="muted"></p>
+      <div id="cancelledAppointmentsList" class="cancelled-archive-list"></div>
+    </div>
+  </dialog>
   <dialog id="appointmentDialog" class="modal">
     <form method="dialog" id="appointmentForm">
       <button id="closeAppointmentDialog" class="modal-close" type="button" aria-label="Chiudi">×</button>
@@ -153,6 +161,17 @@
         <button id="saveAppointmentBtn" type="submit" class="primary-btn">Salva</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="quickStatusDialog" class="modal quick-status-modal" aria-labelledby="quickStatusTitle">
+    <div class="quick-confirm-content">
+      <h3 id="quickStatusTitle">Conferma operazione</h3>
+      <p id="quickStatusDescription"></p>
+      <div class="quick-confirm-actions">
+        <button type="button" id="cancelQuickStatusBtn" class="ghost-btn">Indietro</button>
+        <button type="button" id="confirmQuickStatusBtn" class="primary-btn">Conferma</button>
+      </div>
+    </div>
   </dialog>
 
   <dialog id="helpDialog" class="modal helper-modal" aria-labelledby="helpTitle">

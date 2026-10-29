@@ -3,7 +3,7 @@ let services=structuredClone(DEFAULT_SERVICES);
 const DEFAULT_APP_NAME='Barber Pro';
 const slots=[];for(let h=8;h<=21;h++){slots.push(`${String(h).padStart(2,'0')}:00`);if(h<21)slots.push(`${String(h).padStart(2,'0')}:30`)}
 const $=id=>document.getElementById(id);const state={date:new Date(),appointments:[],clients:[],phones:{},communes:{},closures:[],reminders:{},appName:DEFAULT_APP_NAME};
-function iso(d){return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}function euro(n){const v=Number(n||0);return `${Number.isInteger(v)?v.toFixed(0):v.toFixed(2)}€`}function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
+function backupStamp(d=new Date()){const z=n=>String(n).padStart(2,'0');return `${z(d.getDate())}-${z(d.getMonth()+1)}-${d.getFullYear()}_${z(d.getHours())}-${z(d.getMinutes())}-${z(d.getSeconds())}`}function backupDateLabel(d){return new Date(d).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})}function iso(d){return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}function euro(n){const v=Number(n||0);return `${Number.isInteger(v)?v.toFixed(0):v.toFixed(2)}€`}function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
 // Archivio IndexedDB persistente; importazione automatica dai vecchi dati localStorage.
 const DB_NAME='barber-pro-ipad-v1';
 let dbPromise;
@@ -174,37 +174,107 @@ function renderClosures(){
 }
 function renderWeek(){const base=startOfWeek(state.date);$('weekStrip').innerHTML='';['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].forEach((n,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);const b=document.createElement('button');const holiday=italianHoliday(d);const isSunday=d.getDay()===0;const isRestMonday=d.getDay()===1;const custom=state.closures.find(c=>iso(d)>=c.start&&iso(d)<=c.end);const marked=holiday||isSunday||isRestMonday||custom;const marker=custom?'Chiuso':holiday?'Festivo':isRestMonday?'Riposo':' ';b.className='day-pill'+(marked?' holiday':'')+(iso(d)===iso(state.date)?' active':'');if(marked){b.title=custom?.reason||holiday||(isRestMonday?'Riposo settimanale':'Domenica');b.setAttribute('aria-label',`${n} ${d.getDate()}: ${b.title}`)}b.innerHTML=`<span>${n}</span><strong>${d.getDate()}</strong>${marked?'<small class="holiday-mark">'+marker+'</small>':''}`;b.onclick=()=>{state.date=d;renderAll()};$('weekStrip').appendChild(b)})}
 let agendaMode='compact';
+function appointmentStateClass(a){return a.status==='completed'?'completed':a.status==='cancelled'?'cancelled':a.status==='noshow'?'noshow':'booked'}
+function quickAppointmentCard(a){
+ const card=document.createElement('div');card.className='quick-app-card state-'+appointmentStateClass(a);
+ const top=document.createElement('div');top.className='quick-app-top';
+ const info=document.createElement('div');info.className='quick-app-info';
+ const name=document.createElement('strong');name.textContent=a.client;
+ const service=document.createElement('span');service.textContent=`${a.service} · ${euro(a.price)}`;
+ info.append(name,service);
+ const badge=document.createElement('span');badge.className='quick-state-badge state-'+appointmentStateClass(a);
+ badge.textContent=a.status==='completed'?'✓ Completato · Pagato':a.status==='cancelled'?'✕ Annullato':a.status==='noshow'?'Assente':'● Prenotato';
+ top.append(info,badge);card.append(top);
+ const actions=document.createElement('div');actions.className='quick-app-actions';
+ const edit=document.createElement('button');edit.type='button';edit.className='ghost-btn';edit.textContent='Modifica';edit.onclick=()=>openAppointment(a);actions.append(edit);
+ if(a.status==='booked'||!a.status){
+  const cancel=document.createElement('button');cancel.type='button';cancel.className='quick-cancel-btn';cancel.textContent='Annulla';cancel.onclick=()=>requestQuickStatus(a.id,'cancelled');
+  const complete=document.createElement('button');complete.type='button';complete.className='quick-complete-btn';complete.textContent='✓ Segna completato';complete.onclick=()=>requestQuickStatus(a.id,'completed');actions.append(cancel,complete);
+ }else if(a.status==='cancelled'||a.status==='noshow'){
+  const restore=document.createElement('button');restore.type='button';restore.className='ghost-btn';restore.textContent='Ripristina';restore.onclick=()=>requestQuickStatus(a.id,'booked');actions.append(restore);
+ }
+ card.append(actions);return card;
+}
+let pendingQuickStatus=null;
+function requestQuickStatus(id,status){
+ const a=state.appointments.find(x=>x.id===id);if(!a)return;
+ pendingQuickStatus={id,status};
+ const label=status==='completed'?'Completare e registrare il pagamento':status==='cancelled'?'Annullare appuntamento':'Ripristinare appuntamento';
+ $('quickStatusTitle').textContent=label+'?';
+ $('quickStatusDescription').textContent=`${a.client} · ${a.date} alle ${a.time} · ${a.service}`+(status==='completed'?`\nVerrà registrato automaticamente come pagato (${euro(a.price)}) e incluso negli incassi.`:status==='cancelled'?'\nL’appuntamento resterà nello storico e non sarà conteggiato negli incassi.':'\nL’appuntamento tornerà prenotato e non pagato.');
+ const btn=$('confirmQuickStatusBtn');btn.textContent=status==='completed'?'✓ Conferma completamento':status==='cancelled'?'Conferma annullamento':'Conferma ripristino';btn.className=status==='cancelled'?'danger-btn':'primary-btn';
+ $('quickStatusDialog').showModal();
+}
+function applyQuickStatus(){
+ if(!pendingQuickStatus)return;
+ const {id,status}=pendingQuickStatus;pendingQuickStatus=null;
+ const a=state.appointments.find(x=>x.id===id);if(!a){$('quickStatusDialog').close();return;}
+ a.status=status;a.paid=status==='completed';
+ save(true);$('quickStatusDialog').close();renderAll();
+ if(document.getElementById('slotQuickDetails')){const apps=state.appointments.filter(x=>x.date===a.date&&x.time===a.time&&x.status!=='cancelled');if(apps.length)showSlotAppointments(a.time,apps);}
+}
 function renderAgenda(){
  const ds=iso(state.date);$('datePicker').value=ds;
  $('selectedDateLabel').textContent=state.date.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
- const grid=$('agendaGrid');grid.replaceChildren();
+ const grid=$('agendaGrid');grid.replaceChildren();document.getElementById('slotQuickDetails')?.remove();
  const dayApps=state.appointments.filter(a=>a.date===ds);
- const busy=slots.filter(t=>dayApps.some(a=>a.time===t)).length;
- $('agendaSummary').textContent=`${slots.length-busy} orari liberi · ${busy} occupati · ${dayApps.length} appuntamenti${closureReason(ds)?' · 🔴 '+closureReason(ds):''}`;
+ const cancelledApps=dayApps.filter(a=>a.status==='cancelled').sort((a,b)=>a.time.localeCompare(b.time));
+ const archiveBtn=$('cancelledAppointmentsBtn');const archiveCount=$('cancelledAppointmentsCount');
+ archiveCount.textContent=String(cancelledApps.length);archiveBtn.setAttribute('aria-label',`Appuntamenti annullati: ${cancelledApps.length}. Apri archivio del giorno`);
+ const busy=slots.filter(t=>dayApps.some(a=>a.time===t&&a.status!=='cancelled')).length;
+ const booked=dayApps.filter(a=>!a.status||a.status==='booked').length;
+ const completed=dayApps.filter(a=>a.status==='completed').length;
+ $('agendaSummary').textContent=`${slots.length-busy} orari liberi · ${busy} occupati · ${booked} prenotati · ${completed} completati${closureReason(ds)?' · 🔴 '+closureReason(ds):''}`;
  $('compactAgendaBtn').classList.toggle('active-mode',agendaMode==='compact');
  $('detailAgendaBtn').classList.toggle('active-mode',agendaMode==='detail');
  grid.className=agendaMode==='compact'?'agenda-grid compact-grid':'agenda-grid';
  if(agendaMode==='compact'){
   for(const slot of slots){
-   const apps=dayApps.filter(a=>a.time===slot);
-   const b=document.createElement('button');b.type='button';b.className='compact-slot '+(apps.length?'occupied':'available');
+   const active=dayApps.filter(a=>a.time===slot&&a.status!=='cancelled');
+   const b=document.createElement('button');b.type='button';b.className='compact-slot '+(active.length?'occupied':'available');
    const time=document.createElement('strong');time.textContent=slot;
-   const label=document.createElement('span');label.textContent=apps.length?`${apps.length} appuntament${apps.length===1?'o':'i'}`:'Libero';
-   b.append(time,label);b.title=apps.length?apps.map(a=>a.client).join(', '):'Prenota alle '+slot;
-   b.onclick=()=>{if(!apps.length){openAppointment({time:slot});return;}showSlotAppointments(slot,apps)};
+   const label=document.createElement('span');label.textContent=active.length?`${active.length} appuntament${active.length===1?'o':'i'}`:'Libero';
+   b.append(time,label);b.title=active.length?active.map(a=>a.client+' · '+statusLabel(a.status)).join(', '):'Prenota alle '+slot;
+   b.onclick=()=>{if(!active.length){openAppointment({time:slot});return;}showSlotAppointments(slot,active)};
    grid.appendChild(b);
   }
   return;
  }
- slots.forEach(slot=>{const apps=dayApps.filter(a=>a.time===slot);const row=document.createElement('div');row.className='slot';row.innerHTML=`<div class="slot-time">${slot}</div><div class="apps">${apps.length?apps.map(a=>`<div class="app-card" data-id="${escapeHtml(a.id)}"><b>${escapeHtml(a.client)}</b><br><span class="muted">${escapeHtml(a.service)} · ${euro(a.price)}</span></div>`).join(''):'<div class="empty">Libero</div>'}</div><button class="primary-btn">+ Prenota</button>`;row.querySelector('button').onclick=()=>openAppointment({time:slot});row.querySelectorAll('.app-card').forEach(c=>c.onclick=()=>openAppointment(state.appointments.find(a=>a.id===c.dataset.id)));grid.appendChild(row)});
+ slots.forEach(slot=>{
+  const apps=dayApps.filter(a=>a.time===slot&&a.status!=='cancelled');const row=document.createElement('div');row.className='slot';
+  const time=document.createElement('div');time.className='slot-time';time.textContent=slot;
+  const list=document.createElement('div');list.className='apps';
+  if(apps.length)apps.forEach(a=>list.append(quickAppointmentCard(a)));
+  else{const empty=document.createElement('div');empty.className='empty';empty.textContent='Libero';list.append(empty)}
+  const add=document.createElement('button');add.className='primary-btn';add.textContent='+ Prenota';add.onclick=()=>openAppointment({time:slot});
+  row.append(time,list,add);grid.appendChild(row);
+ });
 }
 function showSlotAppointments(time,apps){
- const grid=$('agendaGrid');const existing=$('slotQuickDetails');if(existing)existing.remove();
+ const grid=$('agendaGrid');document.getElementById('slotQuickDetails')?.remove();
  const panel=document.createElement('div');panel.id='slotQuickDetails';panel.className='slot-quick-details card';
  const heading=document.createElement('h3');heading.textContent=`Ore ${time} · ${apps.length} appuntamenti`;panel.append(heading);
- for(const a of apps){const b=document.createElement('button');b.className='ghost-btn';b.textContent=`${a.client} · ${a.service}`;b.onclick=()=>openAppointment(a);panel.append(b)}
+ for(const a of apps)panel.append(quickAppointmentCard(a));
  const add=document.createElement('button');add.className='primary-btn';add.textContent='+ Aggiungi appuntamento';add.onclick=()=>openAppointment({time});panel.append(add);
  grid.before(panel);panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function showCancelledAppointments(){
+ const ds=iso(state.date);
+ const cancelled=state.appointments.filter(a=>a.date===ds&&a.status==='cancelled').sort((a,b)=>a.time.localeCompare(b.time));
+ const dialog=$('cancelledAppointmentsDialog');const list=$('cancelledAppointmentsList');list.replaceChildren();
+ $('cancelledArchiveDate').textContent=state.date.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+ if(!cancelled.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='Nessun appuntamento annullato per questa data.';list.append(empty);}
+ for(const a of cancelled){
+  const item=document.createElement('div');item.className='cancelled-archive-item';
+  const info=document.createElement('div');info.className='cancelled-archive-info';
+  const heading=document.createElement('strong');heading.textContent=`${a.time} · ${a.client}`;
+  const detail=document.createElement('span');detail.textContent=`${a.service} · ${euro(a.price)}`;
+  info.append(heading,detail);
+  const restore=document.createElement('button');restore.type='button';restore.className='ghost-btn';restore.textContent='↶ Ripristina';
+  restore.onclick=()=>{dialog.close();requestQuickStatus(a.id,'booked')};
+  item.append(info,restore);list.append(item);
+ }
+ dialog.showModal();
 }
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function clientKey(name){return normalizeClientName(name).toLocaleLowerCase('it-IT');}
@@ -498,7 +568,7 @@ $('clientPickerNewBtn').onclick=()=>{
  $('clientPickerDialog').close();
 };
 function renderAll(){applyAppName();renderServiceSettings();renderWeek();renderAgenda();renderClients();renderTomorrowReminders();renderStats();renderReport();renderClosures()}
-$('reminderDayFilter').onchange=renderTomorrowReminders;$('clientSearch').oninput=renderClients;$('closureForm').onsubmit=e=>{e.preventDefault();const start=$('closureStart').value,end=$('closureEnd').value,reason=$('closureReason').value.trim()||'Chiusura straordinaria';if(!start||!end||end<start){alert('Controlla le date della chiusura.');return;}state.closures.push({id:uid(),start,end,reason});save();$('closureForm').reset();renderAll();alert('Chiusura registrata. Gli appuntamenti rimangono possibili previa conferma.')};$('compactAgendaBtn').onclick=()=>{agendaMode='compact';renderAgenda()};$('detailAgendaBtn').onclick=()=>{agendaMode='detail';renderAgenda()};document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>setView(b.dataset.view));$('prevWeek').onclick=()=>{state.date.setDate(state.date.getDate()-7);renderAll()};$('nextWeek').onclick=()=>{state.date.setDate(state.date.getDate()+7);renderAll()};$('datePicker').onchange=e=>{state.date=new Date(e.target.value);renderAll()};$('reportDate').value=iso(new Date());$('periodFilter').onchange=renderReport;$('reportDate').onchange=renderReport;$('printReportBtn').onclick=()=>window.print();$('printClientRankingBtn').onclick=printClientRanking;$('addClientBtn').onclick=()=>{const n=normalizeClientName($('newClientName').value);const raw=$('newClientPhone').value.trim();const phone=normalizePhone(raw);if(!n){alert('Inserisci il nome del cliente.');return;}if(state.clients.some(c=>clientKey(c)===clientKey(n))){alert('Cliente già presente: modifica i dati nella scheda sottostante.');return;}if(raw&&!phone){alert('Numero di cellulare non valido.');return;}state.clients.push(n);if(phone)state.phones[clientKey(n)]=phone;const comune=$('newClientCommune').value.trim();if(comune)state.communes[clientKey(n)]=comune;['newClientName','newClientPhone','newClientCommune'].forEach(id=>$(id).value='');save();renderAll()};
+$('cancelledAppointmentsBtn').onclick=showCancelledAppointments;$('closeCancelledArchiveBtn').onclick=()=>$('cancelledAppointmentsDialog').close();$('confirmQuickStatusBtn').onclick=applyQuickStatus;$('cancelQuickStatusBtn').onclick=()=>{$('quickStatusDialog').close();pendingQuickStatus=null};$('quickStatusDialog').addEventListener('close',()=>{pendingQuickStatus=null});$('reminderDayFilter').onchange=renderTomorrowReminders;$('clientSearch').oninput=renderClients;$('closureForm').onsubmit=e=>{e.preventDefault();const start=$('closureStart').value,end=$('closureEnd').value,reason=$('closureReason').value.trim()||'Chiusura straordinaria';if(!start||!end||end<start){alert('Controlla le date della chiusura.');return;}state.closures.push({id:uid(),start,end,reason});save();$('closureForm').reset();renderAll();alert('Chiusura registrata. Gli appuntamenti rimangono possibili previa conferma.')};$('compactAgendaBtn').onclick=()=>{agendaMode='compact';renderAgenda()};$('detailAgendaBtn').onclick=()=>{agendaMode='detail';renderAgenda()};document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>setView(b.dataset.view));$('prevWeek').onclick=()=>{state.date.setDate(state.date.getDate()-7);renderAll()};$('nextWeek').onclick=()=>{state.date.setDate(state.date.getDate()+7);renderAll()};$('datePicker').onchange=e=>{state.date=new Date(e.target.value);renderAll()};$('reportDate').value=iso(new Date());$('periodFilter').onchange=renderReport;$('reportDate').onchange=renderReport;$('printReportBtn').onclick=()=>window.print();$('printClientRankingBtn').onclick=printClientRanking;$('addClientBtn').onclick=()=>{const n=normalizeClientName($('newClientName').value);const raw=$('newClientPhone').value.trim();const phone=normalizePhone(raw);if(!n){alert('Inserisci il nome del cliente.');return;}if(state.clients.some(c=>clientKey(c)===clientKey(n))){alert('Cliente già presente: modifica i dati nella scheda sottostante.');return;}if(raw&&!phone){alert('Numero di cellulare non valido.');return;}state.clients.push(n);if(phone)state.phones[clientKey(n)]=phone;const comune=$('newClientCommune').value.trim();if(comune)state.communes[clientKey(n)]=comune;['newClientName','newClientPhone','newClientCommune'].forEach(id=>$(id).value='');save();renderAll()};
 $('backupExportBtn').onclick=()=>$('exportBtn').click();$('backupImportFile').onchange=e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;const input=$('restoreBackupFile');const transfer=new DataTransfer();transfer.items.add(file);input.files=transfer.files;input.dispatchEvent(new Event('change'));};$('refreshLocalBtn').onclick=()=>{$('restoreLocalBtn').click();refreshBackupCenter()};
 $('importClientsFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{importClientsFromJsonText(r.result)}catch(err){alert('File clienti JSON non valido. Deve contenere una lista di nomi, oppure {clients:[...]} / {clienti:[...]}')}};r.readAsText(f);e.target.value=''};
 $('exportBtn').onclick=async()=>{
@@ -506,7 +576,7 @@ $('exportBtn').onclick=async()=>{
   const data={format:'barber-pro-backup',version:6,exportedAt:new Date().toISOString(),appointments:state.appointments,clients:state.clients,phones:state.phones,communes:state.communes,closures:state.closures,reminders:state.reminders,appName:state.appName,services};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
-  a.download='barber-pro-backup-'+iso(new Date())+'.json';document.body.appendChild(a);a.click();a.remove();
+  a.download='BarberPro_Backup_'+backupStamp()+'.json';document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),60000);
   // L'esportazione non garantisce che il file sia stato effettivamente salvato su iCloud.
   if(confirm('Hai salvato il file di backup nell’app File, preferibilmente in iCloud Drive? Premi OK solo dopo aver verificato.')){
@@ -538,8 +608,8 @@ async function cleanLocalSnapshots(){
  const remove=[...daily.filter(k=>{const date=String(k).slice(9,19);return !/^\d{4}-\d{2}-\d{2}$/.test(date)||new Date(date+'T23:59:59').getTime()<cutoff;}),...protectedKeys.slice(30)];
  if(!remove.length)return;const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction('archive','readwrite');for(const key of remove)tx.objectStore('archive').delete(key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});
 }
-async function restoreLocalSnapshot(key){const db=await openDb();const record=await new Promise((resolve,reject)=>{const req=db.transaction('archive','readonly').objectStore('archive').get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});if(!record||!record.data||!Array.isArray(record.data.appointments)||!Array.isArray(record.data.clients))throw Error('Copia non valida');if(!confirm('Ripristinare la copia '+key+'? I dati attuali verranno sostituiti. Esporta prima un backup esterno.'))return;await saveQueue;await createLocalSnapshot(true);state.appointments=record.data.appointments;state.clients=record.data.clients;state.phones=record.data.phones||{};state.communes=record.data.communes||{};state.closures=record.data.closures||[];state.reminders=record.data.reminders||{};state.appName=validAppName(record.data.appName);services=validServices(record.data.services);save();await saveQueue;renderAll();alert('Copia locale ripristinata.');}
-$('restoreLocalBtn').onclick=async()=>{try{const keys=await listLocalSnapshots();const el=$('localBackupList');el.replaceChildren();if(!keys.length){el.textContent='Nessuna copia locale disponibile.';return;}for(const key of keys){const btn=document.createElement('button');btn.className='ghost-btn';btn.textContent='Ripristina '+key.replace('snapshot-','');btn.onclick=()=>restoreLocalSnapshot(key).catch(e=>alert(e.message));el.append(btn);}}catch(e){alert('Impossibile leggere le copie locali: '+e.message)}};
+async function restoreLocalSnapshot(key){const db=await openDb();const record=await new Promise((resolve,reject)=>{const req=db.transaction('archive','readonly').objectStore('archive').get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});if(!record||!record.data||!Array.isArray(record.data.appointments)||!Array.isArray(record.data.clients))throw Error('Copia non valida');if(!confirm('Ripristinare la copia del '+(record.createdAt?backupDateLabel(record.createdAt):key)+'? I dati attuali verranno sostituiti. Esporta prima un backup esterno.'))return;await saveQueue;await createLocalSnapshot(true);state.appointments=record.data.appointments;state.clients=record.data.clients;state.phones=record.data.phones||{};state.communes=record.data.communes||{};state.closures=record.data.closures||[];state.reminders=record.data.reminders||{};state.appName=validAppName(record.data.appName);services=validServices(record.data.services);save();await saveQueue;renderAll();alert('Copia locale ripristinata.');}
+$('restoreLocalBtn').onclick=async()=>{try{const keys=await listLocalSnapshots();const db=await openDb();const el=$('localBackupList');el.replaceChildren();if(!keys.length){el.textContent='Nessuna copia locale disponibile.';return;}for(const key of keys){const btn=document.createElement('button');btn.className='ghost-btn';const record=await new Promise((resolve,reject)=>{const req=db.transaction('archive','readonly').objectStore('archive').get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});btn.textContent='Ripristina copia del '+(record?.createdAt?backupDateLabel(record.createdAt):key.replace('snapshot-',''));btn.onclick=()=>restoreLocalSnapshot(key).catch(e=>alert(e.message));el.append(btn);}}catch(e){alert('Impossibile leggere le copie locali: '+e.message)}};
 // Parser vCard 3/4: supporto base a FN, N e TEL, linee ripiegate.
 function parseVcf(text){const cards=String(text).replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\n[ \t]/g,'').split(/BEGIN:VCARD/i).slice(1);const out=[];for(const card of cards){const body=card.split(/END:VCARD/i)[0];const lines=body.split('\n');let name='',fallback='',phone='';for(const line of lines){const idx=line.indexOf(':');if(idx<0)continue;const field=line.slice(0,idx).toUpperCase().split(';')[0].replace(/^ITEM\d+\./,'');const value=line.slice(idx+1).replace(/\\n/gi,' ').replace(/\\,/g,',').trim();if(field==='FN')name=value;else if(field==='N')fallback=value.split(';').filter(Boolean).reverse().join(' ');else if(field==='TEL'&&!phone)phone=normalizePhone(value.replace(/^tel:/i,''));}if(name||fallback)out.push({name:normalizeClientName(name||fallback),phone});}return out;}
 $('importVcfFile').onchange=async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;try{const entries=parseVcf(await f.text());if(!entries.length)throw Error('Nessun contatto riconosciuto. Esporta i contatti in formato vCard (.vcf).');if(!confirm('Importare '+entries.length+' contatti? I nomi già presenti verranno mantenuti; i cellulari esistenti non saranno sovrascritti.'))return;let added=0,numbers=0;for(const entry of entries){if(!state.clients.some(c=>clientKey(c)===clientKey(entry.name))){state.clients.push(entry.name);added++;}const key=clientKey(entry.name);if(entry.phone&&!state.phones[key]){state.phones[key]=entry.phone;numbers++;}}save();await saveQueue;renderAll();$('contactImportStatus').textContent=`Importati ${added} nuovi clienti e ${numbers} numeri. Controlla eventuali omonimi.`;}catch(err){alert('Importazione VCF non riuscita: '+err.message)}};
