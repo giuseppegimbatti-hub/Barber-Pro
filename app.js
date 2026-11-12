@@ -2,7 +2,7 @@ const DEFAULT_SERVICES={"Taglio e barba modellata":{prezzo:20,durata:1},"Taglio"
 let services=structuredClone(DEFAULT_SERVICES);
 const DEFAULT_APP_NAME='Barber Pro';
 const slots=[];for(let h=8;h<=21;h++){slots.push(`${String(h).padStart(2,'0')}:00`);if(h<21)slots.push(`${String(h).padStart(2,'0')}:30`)}
-const $=id=>document.getElementById(id);const state={date:new Date(),appointments:[],clients:[],phones:{},communes:{},closures:[],reminders:{},appName:DEFAULT_APP_NAME};
+const $=id=>document.getElementById(id);const state={date:new Date(),appointments:[],clients:[],phones:{},communes:{},closures:[],reminders:{},appName:DEFAULT_APP_NAME,brandImage:null};
 function backupStamp(d=new Date()){const z=n=>String(n).padStart(2,'0');return `${z(d.getDate())}-${z(d.getMonth()+1)}-${d.getFullYear()}_${z(d.getHours())}-${z(d.getMinutes())}-${z(d.getSeconds())}`}function backupDateLabel(d){return new Date(d).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})}function iso(d){return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10)}function euro(n){const v=Number(n||0);return `${Number.isInteger(v)?v.toFixed(0):v.toFixed(2)}€`}function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2)}
 // Archivio IndexedDB persistente; importazione automatica dai vecchi dati localStorage.
 const DB_NAME='barber-pro-ipad-v1';
@@ -29,6 +29,23 @@ async function writeArchive(data){
     tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
   });
 }
+// Indici temporanei in memoria: NON modificano il database o il formato dei backup.
+let performanceIndex=null;
+function invalidatePerformanceIndex(){performanceIndex=null;}
+function getPerformanceIndex(){
+ if(performanceIndex)return performanceIndex;
+ const byDate=new Map(),byClient=new Map();
+ for(const a of state.appointments){
+  if(!byDate.has(a.date))byDate.set(a.date,[]);
+  byDate.get(a.date).push(a);
+  const key=clientKey(a.client||'');
+  if(!byClient.has(key))byClient.set(key,[]);
+  byClient.get(key).push(a);
+ }
+ return performanceIndex={byDate,byClient};
+}
+function appointmentsForDate(date){return getPerformanceIndex().byDate.get(date)||[];}
+function appointmentsForClient(name){return getPerformanceIndex().byClient.get(clientKey(name))||[];}
 let saveQueue=Promise.resolve();
 async function load(){
   try{
@@ -40,7 +57,7 @@ async function load(){
       await writeArchive(data);
     }
     if(!Array.isArray(data.appointments)||!Array.isArray(data.clients))throw Error('Archivio non valido');
-    state.appointments=data.appointments;state.clients=data.clients;state.phones=(data.phones&&typeof data.phones==='object'&&!Array.isArray(data.phones))?data.phones:{};state.communes=(data.communes&&typeof data.communes==='object'&&!Array.isArray(data.communes))?data.communes:{};state.closures=Array.isArray(data.closures)?data.closures:[];state.reminders=(data.reminders&&typeof data.reminders==='object'&&!Array.isArray(data.reminders))?data.reminders:{};state.appName=validAppName(data.appName);services=validServices(data.services);
+    state.appointments=data.appointments;invalidatePerformanceIndex();state.clients=data.clients;state.phones=(data.phones&&typeof data.phones==='object'&&!Array.isArray(data.phones))?data.phones:{};state.communes=(data.communes&&typeof data.communes==='object'&&!Array.isArray(data.communes))?data.communes:{};state.closures=Array.isArray(data.closures)?data.closures:[];state.reminders=(data.reminders&&typeof data.reminders==='object'&&!Array.isArray(data.reminders))?data.reminders:{};state.appName=validAppName(data.appName);services=validServices(data.services);state.brandImage=validBrandImage(data.brandImage);
   }catch(err){
     console.error(err);window.archiveUnavailable=true;
     alert('ATTENZIONE: impossibile aprire l’archivio locale. Non inserire o modificare dati: verifica le impostazioni del browser e recupera un backup.');
@@ -48,8 +65,9 @@ async function load(){
   updateBackupNotice();
 }
 function save(protect=false){
+  invalidatePerformanceIndex();
   if(window.archiveUnavailable){alert('Archivio non disponibile: modifiche non salvate.');return;}
-  const snapshot=structuredClone({appointments:state.appointments,clients:state.clients,phones:state.phones,communes:state.communes,closures:state.closures,reminders:state.reminders,appName:state.appName,services});
+  const snapshot=structuredClone({appointments:state.appointments,clients:state.clients,phones:state.phones,communes:state.communes,closures:state.closures,reminders:state.reminders,appName:state.appName,services,brandImage:state.brandImage});
   saveQueue=saveQueue.then(async()=>{await createLocalSnapshot(protect);await writeArchive(snapshot);}).catch(err=>{
     console.error(err);window.archiveUnavailable=true;
     alert('ERRORE: i dati non sono stati salvati. Esporta subito un backup e non continuare a lavorare prima di risolvere il problema.');
@@ -75,10 +93,35 @@ function validServices(data){
   const label=name.trim();
   const price=Number(item?.prezzo),duration=Number(item?.durata);
   if(label&&label.length<=70&&Number.isFinite(price)&&price>=0&&price<=10000){
-   clean[label]={prezzo:price,durata:Number.isFinite(duration)&&duration>=0.5&&duration<=16?duration:1};
+   clean[label]={prezzo:price,durata:Number.isFinite(duration)&&duration>=1/3&&duration<=16?duration:1};
   }
  }
  return Object.keys(clean).length?clean:structuredClone(DEFAULT_SERVICES);
+}
+function validBrandImage(value){return typeof value==='string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value) && value.length<700000 ? value : null;}
+function applyBrandImage(){
+ const src=state.brandImage||'icon.svg';
+ for(const id of ['homeBrandImage','brandImagePreview']){const el=$(id);if(el)el.src=src;}
+ const status=$('brandImageStatus');if(status)status.textContent=state.brandImage?'Immagine personalizzata salvata':'Immagine predefinita';
+}
+function setupBrandImage(){
+ const input=$('brandImageFile');if(!input)return;
+ input.onchange=async()=>{
+  const file=input.files?.[0];input.value='';if(!file)return;
+  if(!file.type.startsWith('image/')){alert('Seleziona un’immagine valida.');return;}
+  if(file.size>12*1024*1024){alert('L’immagine è troppo grande (massimo 12 MB).');return;}
+  try{
+   const bitmap=await createImageBitmap(file);const ratio=Math.min(1,1000/Math.max(bitmap.width,bitmap.height));
+   const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(bitmap.width*ratio));canvas.height=Math.max(1,Math.round(bitmap.height*ratio));
+   canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close?.();
+   let encoded=canvas.toDataURL('image/jpeg',0.77);
+   if(encoded.length>650000){const scale=Math.sqrt(500000/encoded.length);const small=document.createElement('canvas');small.width=Math.max(1,Math.round(canvas.width*scale));small.height=Math.max(1,Math.round(canvas.height*scale));small.getContext('2d').drawImage(canvas,0,0,small.width,small.height);encoded=small.toDataURL('image/jpeg',0.65);}
+   if(!validBrandImage(encoded))throw Error('Immagine troppo grande');
+   if(window.archiveUnavailable)throw Error('Archivio locale non disponibile');
+   state.brandImage=encoded;save(true);await saveQueue;applyBrandImage();
+  }catch(err){alert('Impossibile salvare l’immagine: '+err.message);}
+ };
+ $('resetBrandImage').onclick=async()=>{if(!confirm('Ripristinare l’immagine iniziale della Home?'))return;state.brandImage=null;save(true);await saveQueue;applyBrandImage();};
 }
 function applyAppName(){
  document.title=state.appName+' · Gestionale';
@@ -93,7 +136,7 @@ function renderServiceSettings(){
   const label=document.createElement('strong');label.textContent=name;
   const price=document.createElement('input');price.type='number';price.min='0';price.max='10000';price.step='0.01';price.value=String(item.prezzo);price.setAttribute('aria-label','Prezzo di '+name);
   const duration=document.createElement('select');duration.setAttribute('aria-label','Durata di '+name);
-  for(const value of [0.5,1,1.5,2,3,4]){const option=document.createElement('option');option.value=String(value);option.textContent=(value*30)+' min';option.selected=value===item.durata;duration.append(option)}
+  for(const value of [1/3,2/3,0.5,1,1.5,2,3,4]){const option=document.createElement('option');option.value=String(value);option.textContent=Math.round(value*30)+' min';option.selected=value===item.durata;duration.append(option)}
   const edit=document.createElement('button');edit.type='button';edit.className='primary-btn service-save-btn';edit.textContent='Salva';
   edit.onclick=()=>{
    const newPrice=Number(price.value);
@@ -142,7 +185,18 @@ function setupServiceSettings(){
   save(true);$('addServiceForm').reset();renderServiceSettings();
  };
 }
-function setView(name){document.querySelectorAll('.view,.nav-btn').forEach(e=>e.classList.remove('active'));$(name).classList.add('active');document.querySelector(`[data-view="${name}"]`).classList.add('active');$('pageTitle').textContent={agenda:'Agenda',clienti:'Clienti',report:'Gestionale',promemoria:'Promemoria WhatsApp',chiusure:'Ferie e chiusure',backup:'Centro backup',servizi:'Servizi e impostazioni'}[name];if(name==='report')renderReport();if(name==='promemoria')renderTomorrowReminders();if(name==='chiusure')renderClosures();document.body.classList.toggle('in-backup-view',name==='backup');if(name==='backup')refreshBackupCenter();if(name==='servizi')renderServiceSettings();scheduleSectionHelp(name)}
+function renderHome(){
+ const today=iso(new Date());const apps=state.appointments.filter(a=>a.date===today&&a.status!=='cancelled');
+ const pending=apps.filter(a=>!a.status||a.status==='booked');
+ const done=apps.filter(a=>a.status==='completed');
+ const upcoming=apps.filter(a=>a.status==='booked' && a.time>=new Date().toTimeString().slice(0,5)).sort((a,b)=>a.time.localeCompare(b.time))[0];
+ $('homeTodayLabel').textContent=new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+ $('homeTotal').textContent=String(apps.length);$('homePending').textContent=String(pending.length);
+ $('homeCompleted').textContent=String(done.length);$('homeNextTime').textContent=upcoming?.time||'—';$('homeNextClient').textContent=upcoming?upcoming.client+' · '+upcoming.service:'Nessuno in programma';
+ const last=Number(localStorage.getItem('barber-last-external-backup'));
+ $('homeBackupLabel').textContent=last?'Ultimo backup esterno confermato: '+new Date(last).toLocaleString('it-IT',{dateStyle:'short',timeStyle:'short'}):'Nessun backup esterno confermato: esporta una copia su iCloud Drive.';
+}
+function setView(name){document.querySelectorAll('.view,.nav-btn').forEach(e=>e.classList.remove('active'));$(name).classList.add('active');$('pageTitle').textContent={home:'Home',agenda:'Agenda',clienti:'Clienti',report:'Gestionale',promemoria:'Promemoria WhatsApp',chiusure:'Ferie e chiusure',backup:'Centro backup',servizi:'Servizi e impostazioni'}[name];if(name==='home')renderHome();if(name==='clienti')renderClients();window.scrollTo(0,0);if(name==='report')renderReport();if(name==='promemoria')renderTomorrowReminders();if(name==='chiusure')renderClosures();document.body.classList.toggle('in-backup-view',name==='backup');if(name==='backup')refreshBackupCenter();if(name==='servizi')renderServiceSettings();if(name!=='home')scheduleSectionHelp(name)}
 // Festivita nazionali italiane, comprese Pasqua e Lunedi dell'Angelo.
 function easterSunday(year){
  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4;
@@ -172,7 +226,7 @@ function renderClosures(){
  if(!list.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='Nessuna chiusura straordinaria registrata. Lunedì, domeniche e festività sono già evidenziati automaticamente.';el.append(empty);}
  for(const c of list){const row=document.createElement('div');row.className='closure-row';const info=document.createElement('span');info.textContent=`${c.start}${c.end!==c.start?' → '+c.end:''} · ${c.reason}`;const del=document.createElement('button');del.className='ghost-btn';del.type='button';del.textContent='Elimina';del.onclick=()=>{if(!confirm('Eliminare questa chiusura?'))return;state.closures=state.closures.filter(x=>x.id!==c.id);save(true);renderAll()};row.append(info,del);el.append(row)}
 }
-function renderWeek(){const base=startOfWeek(state.date);$('weekStrip').innerHTML='';['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].forEach((n,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);const b=document.createElement('button');const holiday=italianHoliday(d);const isSunday=d.getDay()===0;const isRestMonday=d.getDay()===1;const custom=state.closures.find(c=>iso(d)>=c.start&&iso(d)<=c.end);const marked=holiday||isSunday||isRestMonday||custom;const marker=custom?'Chiuso':holiday?'Festivo':isRestMonday?'Riposo':' ';b.className='day-pill'+(marked?' holiday':'')+(iso(d)===iso(state.date)?' active':'');if(marked){b.title=custom?.reason||holiday||(isRestMonday?'Riposo settimanale':'Domenica');b.setAttribute('aria-label',`${n} ${d.getDate()}: ${b.title}`)}b.innerHTML=`<span>${n}</span><strong>${d.getDate()}</strong>${marked?'<small class="holiday-mark">'+marker+'</small>':''}`;b.onclick=()=>{state.date=d;renderAll()};$('weekStrip').appendChild(b)})}
+function renderWeek(){const base=startOfWeek(state.date);$('weekStrip').innerHTML='';['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].forEach((n,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);const b=document.createElement('button');const holiday=italianHoliday(d);const isSunday=d.getDay()===0;const isRestMonday=d.getDay()===1;const custom=state.closures.find(c=>iso(d)>=c.start&&iso(d)<=c.end);const marked=holiday||isSunday||isRestMonday||custom;const marker=custom?'Chiuso':holiday?'Festivo':isRestMonday?'Riposo':' ';b.className='day-pill'+(marked?' holiday':'')+(iso(d)===iso(state.date)?' active':'');if(marked){b.title=custom?.reason||holiday||(isRestMonday?'Riposo settimanale':'Domenica');b.setAttribute('aria-label',`${n} ${d.getDate()}: ${b.title}`)}b.innerHTML=`<span>${n}</span><strong>${d.getDate()}</strong>${marked?'<small class="holiday-mark">'+marker+'</small>':''}`;b.onclick=()=>{state.date=d;renderAgendaDay()};$('weekStrip').appendChild(b)})}
 let agendaMode='compact';
 function appointmentStateClass(a){return a.status==='completed'?'completed':a.status==='cancelled'?'cancelled':a.status==='noshow'?'noshow':'booked'}
 function quickAppointmentCard(a){
@@ -213,40 +267,48 @@ function applyQuickStatus(){
  save(true);$('quickStatusDialog').close();renderAll();
  if(document.getElementById('slotQuickDetails')){const apps=state.appointments.filter(x=>x.date===a.date&&x.time===a.time&&x.status!=='cancelled');if(apps.length)showSlotAppointments(a.time,apps);}
 }
+function minutesOf(t){const [h,m]=String(t||'').split(':').map(Number);return Number.isFinite(h)&&Number.isFinite(m)?h*60+m:0;}
+function durationMinutes(a){const raw=Number(a.duration??services[a.service]?.durata??1);return Number.isFinite(raw)&&raw>0?Math.round(raw*30):30;}
+function occupies(a,start,end){if(a.status==='cancelled'||a.status==='noshow')return false;const t=minutesOf(a.time);return t<end&&t+durationMinutes(a)>start;}
+function slotCoverage(apps,time){const start=minutesOf(time),end=start+30;const ranges=apps.filter(a=>occupies(a,start,end)).map(a=>[Math.max(start,minutesOf(a.time)),Math.min(end,minutesOf(a.time)+durationMinutes(a))]).sort((a,b)=>a[0]-b[0]);let covered=0,lo=-1,hi=-1;for(const [a,b] of ranges){if(lo<0){lo=a;hi=b}else if(a<=hi){hi=Math.max(hi,b)}else{covered+=hi-lo;lo=a;hi=b}}if(lo>=0)covered+=hi-lo;return Math.min(30,covered);}
+function firstAvailableMinute(apps,time){const start=minutesOf(time);for(let m=start;m<start+30;m++){if(!apps.some(a=>occupies(a,m,m+1)))return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;}return null;}
+function overlapAppointments(candidate){const start=minutesOf(candidate.time),end=start+durationMinutes(candidate);return appointmentsForDate(candidate.date).filter(a=>a.id!==candidate.id&&occupies(a,start,end));}
 function renderAgenda(){
  const ds=iso(state.date);$('datePicker').value=ds;
  $('selectedDateLabel').textContent=state.date.toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
  const grid=$('agendaGrid');grid.replaceChildren();document.getElementById('slotQuickDetails')?.remove();
- const dayApps=state.appointments.filter(a=>a.date===ds);
+ const dayApps=appointmentsForDate(ds);
  const cancelledApps=dayApps.filter(a=>a.status==='cancelled').sort((a,b)=>a.time.localeCompare(b.time));
  const archiveBtn=$('cancelledAppointmentsBtn');const archiveCount=$('cancelledAppointmentsCount');
  archiveCount.textContent=String(cancelledApps.length);archiveBtn.setAttribute('aria-label',`Appuntamenti annullati: ${cancelledApps.length}. Apri archivio del giorno`);
- const busy=slots.filter(t=>dayApps.some(a=>a.time===t&&a.status!=='cancelled')).length;
+ const coverage=new Map(slots.map(t=>[t,slotCoverage(dayApps,t)]));
+ const busy=slots.filter(t=>coverage.get(t)===30).length;const partial=slots.filter(t=>{const n=coverage.get(t);return n>0&&n<30}).length;
  const booked=dayApps.filter(a=>!a.status||a.status==='booked').length;
  const completed=dayApps.filter(a=>a.status==='completed').length;
- $('agendaSummary').textContent=`${slots.length-busy} orari liberi · ${busy} occupati · ${booked} prenotati · ${completed} completati${closureReason(ds)?' · 🔴 '+closureReason(ds):''}`;
+ $('agendaSummary').textContent=`${slots.length-busy-partial} fasce libere · ${partial} parziali · ${busy} piene · ${booked} prenotati · ${completed} completati${closureReason(ds)?' · 🔴 '+closureReason(ds):''}`;
  $('compactAgendaBtn').classList.toggle('active-mode',agendaMode==='compact');
  $('detailAgendaBtn').classList.toggle('active-mode',agendaMode==='detail');
  grid.className=agendaMode==='compact'?'agenda-grid compact-grid':'agenda-grid';
  if(agendaMode==='compact'){
   for(const slot of slots){
-   const active=dayApps.filter(a=>a.time===slot&&a.status!=='cancelled');
-   const b=document.createElement('button');b.type='button';b.className='compact-slot '+(active.length?'occupied':'available');
+   const startMinute=minutesOf(slot),active=dayApps.filter(a=>occupies(a,startMinute,startMinute+30));
+   const used=coverage.get(slot),free=30-used;
+   const b=document.createElement('button');b.type='button';b.className='compact-slot '+(used===30?'occupied':used>0?'partial':'available');
    const time=document.createElement('strong');time.textContent=slot;
-   const label=document.createElement('span');label.textContent=active.length?`${active.length} appuntament${active.length===1?'o':'i'}`:'Libero';
-   b.append(time,label);b.title=active.length?active.map(a=>a.client+' · '+statusLabel(a.status)).join(', '):'Prenota alle '+slot;
-   b.onclick=()=>{if(!active.length){openAppointment({time:slot});return;}showSlotAppointments(slot,active)};
+   const label=document.createElement('span');label.textContent=used===30?'Pieno · 0 min':used>0?`${free} min liberi`:'Libero · 30 min';
+   b.append(time,label);b.title=active.length?active.map(a=>`${a.time} ${a.client} · ${durationMinutes(a)} min`).join(' | '):'Prenota alle '+slot;
+   b.onclick=()=>{const next=firstAvailableMinute(dayApps,slot);if(!active.length&&next){openAppointment({time:next});return;}showSlotAppointments(slot,active)};
    grid.appendChild(b);
   }
   return;
  }
  slots.forEach(slot=>{
-  const apps=dayApps.filter(a=>a.time===slot&&a.status!=='cancelled');const row=document.createElement('div');row.className='slot';
-  const time=document.createElement('div');time.className='slot-time';time.textContent=slot;
+  const apps=dayApps.filter(a=>occupies(a,minutesOf(slot),minutesOf(slot)+30));const row=document.createElement('div');row.className='slot';
+  const time=document.createElement('div');time.className='slot-time';time.textContent=slot;const used=coverage.get(slot);row.classList.add(used===30?'slot-full':used>0?'slot-partial':'slot-free');
   const list=document.createElement('div');list.className='apps';
   if(apps.length)apps.forEach(a=>list.append(quickAppointmentCard(a)));
-  else{const empty=document.createElement('div');empty.className='empty';empty.textContent='Libero';list.append(empty)}
-  const add=document.createElement('button');add.className='primary-btn';add.textContent='+ Prenota';add.onclick=()=>openAppointment({time:slot});
+  else{const empty=document.createElement('div');empty.className='empty';empty.textContent='Libero · 30 min';list.append(empty)}
+  const add=document.createElement('button');add.className='primary-btn';add.textContent=used===30?'Pieno':`+ Prenota (${30-used} min liberi)`;add.disabled=used===30;add.onclick=()=>{const next=firstAvailableMinute(dayApps,slot);if(next)openAppointment({time:next})};
   row.append(time,list,add);grid.appendChild(row);
  });
 }
@@ -255,12 +317,12 @@ function showSlotAppointments(time,apps){
  const panel=document.createElement('div');panel.id='slotQuickDetails';panel.className='slot-quick-details card';
  const heading=document.createElement('h3');heading.textContent=`Ore ${time} · ${apps.length} appuntamenti`;panel.append(heading);
  for(const a of apps)panel.append(quickAppointmentCard(a));
- const add=document.createElement('button');add.className='primary-btn';add.textContent='+ Aggiungi appuntamento';add.onclick=()=>openAppointment({time});panel.append(add);
+ const add=document.createElement('button');add.className='primary-btn';add.textContent='+ Aggiungi appuntamento';add.onclick=()=>{const next=firstAvailableMinute(appointmentsForDate(iso(state.date)),time);if(next)openAppointment({time:next});else alert('Fascia piena.')};panel.append(add);
  grid.before(panel);panel.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 function showCancelledAppointments(){
  const ds=iso(state.date);
- const cancelled=state.appointments.filter(a=>a.date===ds&&a.status==='cancelled').sort((a,b)=>a.time.localeCompare(b.time));
+ const cancelled=appointmentsForDate(ds).filter(a=>a.status==='cancelled').sort((a,b)=>a.time.localeCompare(b.time));
  const dialog=$('cancelledAppointmentsDialog');const list=$('cancelledAppointmentsList');list.replaceChildren();
  $('cancelledArchiveDate').textContent=state.date.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
  if(!cancelled.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='Nessun appuntamento annullato per questa data.';list.append(empty);}
@@ -325,14 +387,21 @@ function renderTomorrowReminders(){
   row.append(label,badge,btn,sent,reset);el.append(row);
  }
 }
+let clientPageSize=60;let clientSuggestionsVersion=-1;
 function renderClients(){
- const list=$('clientList');list.replaceChildren();const allClientNames=[...state.clients];const search=($('clientSearch')?.value||'').trim().toLocaleLowerCase('it-IT');
- [...state.clients].filter(c=>!search||c.toLocaleLowerCase('it-IT').includes(search)||phoneFor(c).includes(search)).sort((a,b)=>a.localeCompare(b,'it')).forEach(c=>{
+ const list=$('clientList');list.replaceChildren();const search=($('clientSearch')?.value||'').trim().toLocaleLowerCase('it-IT');
+ const matching=state.clients.filter(c=>!search||c.toLocaleLowerCase('it-IT').includes(search)||phoneFor(c).includes(search)).sort((a,b)=>a.localeCompare(b,'it'));
+ const fragment=document.createDocumentFragment();
+ matching.slice(0,clientPageSize).forEach(c=>{
   const key=clientKey(c),apps=state.appointments.filter(a=>clientKey(a.client)===key);
   const completed=apps.filter(isPaidVisit);const total=completed.reduce((sum,a)=>sum+Number(a.price||0),0);
   const r=document.createElement('div');r.className='client-row';
   const info=document.createElement('div');info.className='client-info';const title=document.createElement('strong');title.textContent=c;
   const visits=document.createElement('span');visits.textContent=apps.filter(a=>a.status==='completed').length+' visite completate · '+euro(total)+' incassati';info.append(title,visits);
+  const lastVisit=apps.filter(a=>a.status==='completed').sort((a,b)=>(b.date+' '+b.time).localeCompare(a.date+' '+a.time))[0];
+  const serviceCounts={};apps.filter(a=>a.status==='completed').forEach(a=>{serviceCounts[a.service]=(serviceCounts[a.service]||0)+1});
+  const favorite=Object.entries(serviceCounts).sort((a,b)=>b[1]-a[1])[0];
+  const insights=document.createElement('span');insights.className='client-insights';insights.textContent='Ultima visita: '+(lastVisit?new Date(lastVisit.date+'T12:00:00').toLocaleDateString('it-IT'):'—')+' · Servizio abituale: '+(favorite?.[0]||'—');info.append(insights);
   const comune=document.createElement('input');comune.placeholder='Comune di residenza';comune.value=communeFor(c);comune.setAttribute('aria-label','Comune di '+c);
   comune.onchange=()=>{const value=comune.value.trim();if(value)state.communes[key]=value;else delete state.communes[key];save()};
   const phone=document.createElement('input');phone.type='tel';phone.placeholder='Cellulare';phone.value=phoneFor(c);phone.setAttribute('aria-label','Cellulare di '+c);
@@ -342,30 +411,35 @@ function renderClients(){
   const del=document.createElement('button');del.className='danger-btn';del.textContent='Elimina';del.onclick=()=>{if(confirm(`Eliminare ${c}? Gli appuntamenti esistenti non saranno eliminati.`)){state.clients=state.clients.filter(x=>x!==c);delete state.phones[key];delete state.communes[key];save(true);renderAll()}};
   const history=document.createElement('details');history.className='client-history';
   const summary=document.createElement('summary');const completedVisits=apps.filter(a=>a.status==='completed');const last=completedVisits.slice().sort((a,b)=>b.date.localeCompare(a.date))[0];summary.textContent='Storico: '+completedVisits.length+' visite · '+euro(total)+' incassati'+(last?' · Ultima visita '+last.date:'');history.append(summary);
-  for(const a of visitHistory(c)){const line=document.createElement('div');line.className='history-line';
-    line.textContent=`${a.date} ${a.time} · ${a.service} · ${euro(a.price)} · ${statusLabel(a.status)}${isPaidVisit(a)?' · Pagato':''}`;
-    history.append(line);
-  }
-  r.append(info,comune,phone,wa,history,del);list.appendChild(r);
+  // Storico creato soltanto alla prima apertura della scheda cliente.
+  history.addEventListener('toggle',()=>{if(!history.open||history.dataset.loaded)return;history.dataset.loaded='1';
+   for(const a of visitHistory(c)){const line=document.createElement('div');line.className='history-line';
+    line.textContent=`${a.date} ${a.time} · ${a.service} · ${euro(a.price)} · ${statusLabel(a.status)}${isPaidVisit(a)?' · Pagato':''}`;history.append(line);}
+  });
+  r.append(info,comune,phone,wa,history,del);fragment.appendChild(r);
  });
- $('clientSuggestions').replaceChildren();allClientNames.sort((a,b)=>a.localeCompare(b,'it')).forEach(c=>{const opt=document.createElement('option');opt.value=c;$('clientSuggestions').append(opt)});
+ list.appendChild(fragment);
+ if(matching.length>clientPageSize){const more=document.createElement('button');more.type='button';more.className='ghost-btn';more.textContent=`Mostra altri clienti (${matching.length-clientPageSize} rimanenti)`;more.onclick=()=>{clientPageSize+=60;renderClients()};list.append(more);}
+ // Le opzioni sono necessarie solo durante la prenotazione; non ricrearle ad ogni ricerca.
+ if(clientSuggestionsVersion!==state.clients.length){clientSuggestionsVersion=state.clients.length;const suggestions=$('clientSuggestions');suggestions.replaceChildren();const options=document.createDocumentFragment();state.clients.forEach(c=>{const opt=document.createElement('option');opt.value=c;options.append(opt)});suggestions.append(options);}
 }
 
 function renderStats(){}
 function isPaidVisit(a){return a.status==='completed' && a.paid===true}
+function isPlannedVisit(a){return a.status!=='cancelled'&&a.status!=='noshow'}
 function statusLabel(s){return ({booked:'Prenotato',completed:'Completato',cancelled:'Annullato',noshow:'Assente'})[s]||'Prenotato'}
 function visitHistory(name){
  return state.appointments.filter(a=>clientKey(a.client)===clientKey(name))
    .sort((a,b)=>(b.date+' '+b.time).localeCompare(a.date+' '+a.time));
 }
-function openAppointment(app){const isEdit=!!app.id;$('appointmentTitle').textContent=isEdit?'Modifica appuntamento':'Nuovo appuntamento';$('editingAppointmentId').value=app.id||'';$('appointmentClient').value=app.client||'';$('appointmentTime').value=app.time||'08:00';$('appointmentService').replaceChildren();
+function openAppointment(app){const isEdit=!!app.id;$('appointmentTitle').textContent=isEdit?'Modifica appuntamento':'Nuovo appuntamento';$('editingAppointmentId').value=app.id||'';$('appointmentClient').value=app.client||'';$('appointmentTime').value=app.time||'08:00';$('appointmentTime').step='60';$('appointmentService').replaceChildren();
  const selectedName=app.service||'Taglio';
  for(const name of Object.keys(services)){const opt=document.createElement('option');opt.value=name;opt.textContent=name;opt.selected=name===selectedName;$('appointmentService').append(opt)}
  if(app.service&&!services[app.service]){const old=document.createElement('option');old.value=app.service;old.textContent=app.service+' (servizio non più in elenco)';old.selected=true;$('appointmentService').append(old)}const selectedService=app.service||'Taglio';const defaultPrice=services[selectedService]?.prezzo??Number(app.price||0);$('appointmentCustomPrice').value=(isEdit&&Number(app.price||0)!==Number(defaultPrice))?String(app.price):'';$('appointmentNotes').value=app.notes||'';
- $('appointmentStatus').value=app.status||'booked';
+ $('appointmentStatus').value=app.status||'booked';const durLabel=$('appointmentDurationInfo');const updateDuration=()=>{if(durLabel)durLabel.textContent='Durata prevista: '+durationMinutes({service:$('appointmentService').value,duration:($('appointmentService').value===app.service?app.duration:undefined)})+' minuti'};updateDuration();
  $('appointmentPaid').checked=app.paid===true;
  $('appointmentPaid').disabled=(app.status||'booked')!=='completed';
- $('appointmentStatus').onchange=()=>{$('appointmentPaid').disabled=$('appointmentStatus').value!=='completed';if($('appointmentPaid').disabled)$('appointmentPaid').checked=false};$('appointmentPhone').value=phoneFor(app.client||'');$('whatsappAppointmentBtn').classList.toggle('hidden',!isEdit);$('whatsappAppointmentBtn').onclick=()=>openWhatsApp(app);$('appointmentCustomPrice').placeholder=`Lascia vuoto per usare ${euro(defaultPrice)}`;$('appointmentService').onchange=()=>{$('appointmentCustomPrice').placeholder=`Lascia vuoto per usare ${euro((services[$('appointmentService').value]?.prezzo??Number(app.price||0)))}`};$('deleteAppointmentBtn').classList.toggle('hidden',!isEdit);$('appointmentDialog').showModal()}
+ $('appointmentStatus').onchange=()=>{$('appointmentPaid').disabled=$('appointmentStatus').value!=='completed';if($('appointmentPaid').disabled)$('appointmentPaid').checked=false};$('appointmentPhone').value=phoneFor(app.client||'');$('whatsappAppointmentBtn').classList.toggle('hidden',!isEdit);$('whatsappAppointmentBtn').onclick=()=>openWhatsApp(app);$('appointmentCustomPrice').placeholder=`Lascia vuoto per usare ${euro(defaultPrice)}`;$('appointmentService').onchange=()=>{updateDuration();$('appointmentCustomPrice').placeholder=`Lascia vuoto per usare ${euro((services[$('appointmentService').value]?.prezzo??Number(app.price||0)))}`};$('deleteAppointmentBtn').classList.toggle('hidden',!isEdit);$('appointmentDialog').showModal()}
 
 function closeAppointmentDialog(){
   $('appointmentDialog').close();
@@ -379,7 +453,22 @@ $('appointmentDialog').addEventListener('click',e=>{if(e.target===$('appointment
 $('appointmentDialog').addEventListener('cancel',e=>{e.preventDefault();closeAppointmentDialog()});
 function normalizeClientName(name){const clean=name.trim().replace(/\s+/g,' ');return clean?clean[0].toUpperCase()+clean.slice(1):''}
 $('appointmentClient').addEventListener('change',()=>{$('appointmentPhone').value=phoneFor($('appointmentClient').value)});
-$('appointmentForm').addEventListener('submit',e=>{e.preventDefault();const reason=closureReason(iso(state.date));if(reason&&!confirm('Giorno di riposo o chiusura: '+reason+'\n\nVuoi autorizzare comunque questa prenotazione?'))return;const id=$('editingAppointmentId').value||uid();const service=$('appointmentService').value;const client=normalizeClientName($('appointmentClient').value);if(!client)return;const customRaw=String($('appointmentCustomPrice').value||'').replace(',','.').trim();const customPrice=customRaw===''?null:Number(customRaw);const finalPrice=customPrice!==null&&!Number.isNaN(customPrice)?customPrice:(services[service]?.prezzo??Number(state.appointments.find(a=>a.id===id)?.price||0));const obj={id,client,service,time:$('appointmentTime').value,price:finalPrice,notes:$('appointmentNotes').value.trim(),status:$('appointmentStatus').value,paid:$('appointmentStatus').value==='completed'&&$('appointmentPaid').checked,date:iso(state.date)};const idx=state.appointments.findIndex(a=>a.id===id);idx>=0?state.appointments[idx]=obj:state.appointments.push(obj);if(!state.clients.some(c=>c.toLowerCase()===obj.client.toLowerCase()))state.clients.push(obj.client);const phoneRaw=$('appointmentPhone').value.trim();if(phoneRaw){const phone=normalizePhone(phoneRaw);if(!phone){alert('Numero di cellulare non valido.');return;}const old=phoneFor(obj.client);if(old!==phone&&!confirm('Confermi la modifica del numero nell’anagrafica di '+obj.client+'?\\n\\nVecchio: '+(old||'(nessuno)')+'\\nNuovo: '+phone))return;state.phones[clientKey(obj.client)]=phone;}save();$('appointmentDialog').close();renderAll()});
+let appointmentSubmitBusy=false;
+$('appointmentForm').addEventListener('submit',e=>{if(appointmentSubmitBusy)return;e.preventDefault();const reason=closureReason(iso(state.date));if(reason&&!confirm('Giorno di riposo o chiusura: '+reason+'\n\nVuoi autorizzare comunque questa prenotazione?'))return;const id=$('editingAppointmentId').value||uid();const service=$('appointmentService').value;const client=normalizeClientName($('appointmentClient').value);if(!client)return;const customRaw=String($('appointmentCustomPrice').value||'').replace(',','.').trim();const customPrice=customRaw===''?null:Number(customRaw);const finalPrice=customPrice!==null&&!Number.isNaN(customPrice)?customPrice:(services[service]?.prezzo??Number(state.appointments.find(a=>a.id===id)?.price||0));const obj={id,client,service,time:$('appointmentTime').value,price:finalPrice,notes:$('appointmentNotes').value.trim(),status:$('appointmentStatus').value,duration:($('appointmentService').value===state.appointments.find(a=>a.id===id)?.service?state.appointments.find(a=>a.id===id)?.duration:undefined)??services[service]?.durata??1,paid:$('appointmentStatus').value==='completed'&&$('appointmentPaid').checked,date:iso(state.date)};const conflicts=(obj.status==='cancelled'||obj.status==='noshow')?[]:overlapAppointments(obj);if(conflicts.length){alert('Orario non disponibile: il servizio si sovrappone a '+conflicts.map(a=>a.client+' ('+a.time+', '+durationMinutes(a)+' min)').join(', ')+'. Scegli un altro orario.');return;}// Verifica prima di modificare lo stato, così una conferma annullata non altera l'archivio.
+const phoneRaw=$('appointmentPhone').value.trim();let phone='';
+if(phoneRaw){phone=normalizePhone(phoneRaw);if(!phone){alert('Numero di cellulare non valido.');return;}const old=phoneFor(obj.client);if(old!==phone&&!confirm('Confermi la modifica del numero nell’anagrafica di '+obj.client+'?\n\nVecchio: '+(old||'(nessuno)')+'\nNuovo: '+phone))return;}
+if(window.archiveUnavailable){alert('Archivio non disponibile: impossibile salvare.');return;}
+appointmentSubmitBusy=true;
+try{
+ const idx=state.appointments.findIndex(a=>a.id===id);
+ idx>=0?state.appointments[idx]=obj:state.appointments.push(obj);
+ if(!state.clients.some(c=>c.toLowerCase()===obj.client.toLowerCase()))state.clients.push(obj.client);
+ if(phone)state.phones[clientKey(obj.client)]=phone;
+ save(); // Stesso archivio IndexedDB e stesso formato della versione funzionante.
+ $('appointmentDialog').close();
+ // Aggiorna solo l'Agenda. Home, clienti e Gestionale ricalcolano i dati all'apertura.
+ renderAgendaDay();
+}finally{appointmentSubmitBusy=false;}});
 $('deleteAppointmentBtn').onclick=()=>{const id=$('editingAppointmentId').value;if(confirm('Eliminare questo appuntamento?')){state.appointments=state.appointments.filter(a=>a.id!==id);save(true);$('appointmentDialog').close();renderAll()}};
 function periodRange(type,ref){const d=new Date(ref);let start,end;if(type==='day'){start=new Date(d.getFullYear(),d.getMonth(),d.getDate());end=new Date(start);end.setDate(start.getDate()+1)}else if(type==='week'){start=startOfWeek(d);end=new Date(start);end.setDate(start.getDate()+7)}else if(type==='month'){start=new Date(d.getFullYear(),d.getMonth(),1);end=new Date(d.getFullYear(),d.getMonth()+1,1)}else if(type==='year'){start=new Date(d.getFullYear(),0,1);end=new Date(d.getFullYear()+1,0,1)}else{return [null,null]}return [iso(start),iso(end)]}
 function periodLabel(type,s,e,ref){
@@ -396,7 +485,7 @@ function getFilteredReportData(){
   const ref=$('reportDate').value?new Date($('reportDate').value):new Date();
   const [s,e]=periodRange(type,ref);
   const apps=state.appointments.filter(a=>!s||(a.date>=s&&a.date<e));
-  const paidApps=apps.filter(isPaidVisit);const total=paidApps.reduce((x,a)=>x+Number(a.price||0),0);
+  const paidApps=apps.filter(isPaidVisit);const total=paidApps.reduce((x,a)=>x+Number(a.price||0),0);const plannedApps=apps.filter(isPlannedVisit);const projectedTotal=plannedApps.reduce((x,a)=>x+Number(a.price||0),0);
   const byClient={};
   paidApps.forEach(a=>{
     if(!byClient[a.client])byClient[a.client]={client:a.client,spent:0,visits:0};
@@ -408,12 +497,12 @@ function getFilteredReportData(){
   apps.filter(a=>a.status==='completed').forEach(a=>{const k=clientKey(a.client);if(!completedByClient[k])completedByClient[k]={client:a.client,visits:0,spent:0};completedByClient[k].visits++;});
   paidApps.forEach(a=>{const k=clientKey(a.client);if(completedByClient[k])completedByClient[k].spent+=Number(a.price||0)});
   const rankingVisits=Object.values(completedByClient).sort((a,b)=>b.visits-a.visits||b.spent-a.spent||a.client.localeCompare(b.client));
-  return {type,ref,s,e,apps,paidApps,total,ranking,rankingVisits,label:periodLabel(type,s,e,ref)};
+  return {type,ref,s,e,apps,paidApps,total,projectedTotal,plannedApps,ranking,rankingVisits,label:periodLabel(type,s,e,ref)};
 }
 function renderReport(){
   const data=getFilteredReportData();
   const clients=data.ranking.length;
-  $('metricIncome').textContent=euro(data.total);
+  $('metricIncome').textContent=euro(data.projectedTotal);const actual=$('actualIncome');if(actual)actual.textContent='Incassi confermati: '+euro(data.total);
   $('metricCount').textContent=data.apps.length;
   $('metricClients').textContent=clients;
   const rows=data.ranking.map((r,i)=>`<tr><td>${i+1}</td><td>${r.client}</td><td>${r.visits}</td><td>${euro(r.spent)}</td></tr>`).join('');
@@ -422,7 +511,7 @@ function renderReport(){
   $('reportText').textContent=`REPORT BARBER PRO
 Periodo: ${data.label}
 
-Incasso totale: ${euro(data.total)}
+Totale previsto dagli appuntamenti: ${euro(data.projectedTotal)}\nIncassi confermati: ${euro(data.total)}
 Appuntamenti: ${data.apps.length}
 Clienti diversi: ${clients}
 
@@ -512,7 +601,7 @@ const sectionHelp={
  report:{title:'Gestionale',intro:'Controlla incassi e attività del negozio.',items:['Filtra per giorno, settimana, mese o anno.','Gli incassi includono soltanto gli appuntamenti completati e pagati.','Consulta grafici, servizi più richiesti e classifiche clienti.','Stampa i report quando necessario.']},
  backup:{title:'Centro backup',intro:'Proteggi i dati salvati sul dispositivo.',items:['Le copie locali sono conservate sul dispositivo e non sostituiscono un backup esterno.','Esporta periodicamente il JSON e salvalo in File → iCloud Drive.','Puoi ripristinare un backup JSON o una copia locale.','Verifica sempre che il file esportato sia stato effettivamente salvato.']}
 };
-let currentView='agenda';
+let currentView='home';
 function showSectionHelp(view){
  const data=sectionHelp[view];if(!data)return;
  $('helpTitle').textContent=data.title;$('helpIntro').textContent=data.intro;
@@ -567,13 +656,14 @@ $('clientPickerNewBtn').onclick=()=>{
  $('appointmentPhone').value=phoneFor(existing||name);
  $('clientPickerDialog').close();
 };
-function renderAll(){applyAppName();renderServiceSettings();renderWeek();renderAgenda();renderClients();renderTomorrowReminders();renderStats();renderReport();renderClosures()}
-$('cancelledAppointmentsBtn').onclick=showCancelledAppointments;$('closeCancelledArchiveBtn').onclick=()=>$('cancelledAppointmentsDialog').close();$('confirmQuickStatusBtn').onclick=applyQuickStatus;$('cancelQuickStatusBtn').onclick=()=>{$('quickStatusDialog').close();pendingQuickStatus=null};$('quickStatusDialog').addEventListener('close',()=>{pendingQuickStatus=null});$('reminderDayFilter').onchange=renderTomorrowReminders;$('clientSearch').oninput=renderClients;$('closureForm').onsubmit=e=>{e.preventDefault();const start=$('closureStart').value,end=$('closureEnd').value,reason=$('closureReason').value.trim()||'Chiusura straordinaria';if(!start||!end||end<start){alert('Controlla le date della chiusura.');return;}state.closures.push({id:uid(),start,end,reason});save();$('closureForm').reset();renderAll();alert('Chiusura registrata. Gli appuntamenti rimangono possibili previa conferma.')};$('compactAgendaBtn').onclick=()=>{agendaMode='compact';renderAgenda()};$('detailAgendaBtn').onclick=()=>{agendaMode='detail';renderAgenda()};document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>setView(b.dataset.view));$('prevWeek').onclick=()=>{state.date.setDate(state.date.getDate()-7);renderAll()};$('nextWeek').onclick=()=>{state.date.setDate(state.date.getDate()+7);renderAll()};$('datePicker').onchange=e=>{state.date=new Date(e.target.value);renderAll()};$('reportDate').value=iso(new Date());$('periodFilter').onchange=renderReport;$('reportDate').onchange=renderReport;$('printReportBtn').onclick=()=>window.print();$('printClientRankingBtn').onclick=printClientRanking;$('addClientBtn').onclick=()=>{const n=normalizeClientName($('newClientName').value);const raw=$('newClientPhone').value.trim();const phone=normalizePhone(raw);if(!n){alert('Inserisci il nome del cliente.');return;}if(state.clients.some(c=>clientKey(c)===clientKey(n))){alert('Cliente già presente: modifica i dati nella scheda sottostante.');return;}if(raw&&!phone){alert('Numero di cellulare non valido.');return;}state.clients.push(n);if(phone)state.phones[clientKey(n)]=phone;const comune=$('newClientCommune').value.trim();if(comune)state.communes[clientKey(n)]=comune;['newClientName','newClientPhone','newClientCommune'].forEach(id=>$(id).value='');save();renderAll()};
+function renderAgendaDay(){renderWeek();renderAgenda();}
+function renderAll(){renderHome();applyAppName();applyBrandImage();renderServiceSettings();renderWeek();renderAgenda();if($('clienti').classList.contains('active'))renderClients();renderTomorrowReminders();renderStats();renderReport();renderClosures()}
+$('cancelledAppointmentsBtn').onclick=showCancelledAppointments;$('closeCancelledArchiveBtn').onclick=()=>$('cancelledAppointmentsDialog').close();$('confirmQuickStatusBtn').onclick=applyQuickStatus;$('cancelQuickStatusBtn').onclick=()=>{$('quickStatusDialog').close();pendingQuickStatus=null};$('quickStatusDialog').addEventListener('close',()=>{pendingQuickStatus=null});$('reminderDayFilter').onchange=renderTomorrowReminders;$('clientSearch').oninput=()=>{clientPageSize=60;renderClients()};$('closureForm').onsubmit=e=>{e.preventDefault();const start=$('closureStart').value,end=$('closureEnd').value,reason=$('closureReason').value.trim()||'Chiusura straordinaria';if(!start||!end||end<start){alert('Controlla le date della chiusura.');return;}state.closures.push({id:uid(),start,end,reason});save();$('closureForm').reset();renderAll();alert('Chiusura registrata. Gli appuntamenti rimangono possibili previa conferma.')};$('compactAgendaBtn').onclick=()=>{agendaMode='compact';renderAgenda()};$('detailAgendaBtn').onclick=()=>{agendaMode='detail';renderAgenda()};document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>setView(b.dataset.view));document.querySelectorAll('[data-home-link]').forEach(b=>b.onclick=()=>setView(b.dataset.homeLink));$('prevWeek').onclick=()=>{state.date.setDate(state.date.getDate()-7);renderAgendaDay()};$('nextWeek').onclick=()=>{state.date.setDate(state.date.getDate()+7);renderAgendaDay()};$('datePicker').onchange=e=>{state.date=new Date(e.target.value+'T12:00:00');renderAgendaDay()};$('reportDate').value=iso(new Date());$('periodFilter').onchange=renderReport;$('reportDate').onchange=renderReport;$('printReportBtn').onclick=()=>window.print();$('printClientRankingBtn').onclick=printClientRanking;$('addClientBtn').onclick=()=>{const n=normalizeClientName($('newClientName').value);const raw=$('newClientPhone').value.trim();const phone=normalizePhone(raw);if(!n){alert('Inserisci il nome del cliente.');return;}if(state.clients.some(c=>clientKey(c)===clientKey(n))){alert('Cliente già presente: modifica i dati nella scheda sottostante.');return;}if(raw&&!phone){alert('Numero di cellulare non valido.');return;}state.clients.push(n);if(phone)state.phones[clientKey(n)]=phone;const comune=$('newClientCommune').value.trim();if(comune)state.communes[clientKey(n)]=comune;['newClientName','newClientPhone','newClientCommune'].forEach(id=>$(id).value='');save();renderAll()};
 $('backupExportBtn').onclick=()=>$('exportBtn').click();$('backupImportFile').onchange=e=>{const file=e.target.files?.[0];e.target.value='';if(!file)return;const input=$('restoreBackupFile');const transfer=new DataTransfer();transfer.items.add(file);input.files=transfer.files;input.dispatchEvent(new Event('change'));};$('refreshLocalBtn').onclick=()=>{$('restoreLocalBtn').click();refreshBackupCenter()};
 $('importClientsFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{importClientsFromJsonText(r.result)}catch(err){alert('File clienti JSON non valido. Deve contenere una lista di nomi, oppure {clients:[...]} / {clienti:[...]}')}};r.readAsText(f);e.target.value=''};
 $('exportBtn').onclick=async()=>{
   await saveQueue;
-  const data={format:'barber-pro-backup',version:6,exportedAt:new Date().toISOString(),appointments:state.appointments,clients:state.clients,phones:state.phones,communes:state.communes,closures:state.closures,reminders:state.reminders,appName:state.appName,services};
+  const data={format:'barber-pro-backup',version:6,exportedAt:new Date().toISOString(),appointments:state.appointments,clients:state.clients,phones:state.phones,communes:state.communes,closures:state.closures,reminders:state.reminders,appName:state.appName,services,brandImage:state.brandImage};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
   a.download='BarberPro_Backup_'+backupStamp()+'.json';document.body.appendChild(a);a.click();a.remove();
@@ -608,12 +698,25 @@ async function cleanLocalSnapshots(){
  const remove=[...daily.filter(k=>{const date=String(k).slice(9,19);return !/^\d{4}-\d{2}-\d{2}$/.test(date)||new Date(date+'T23:59:59').getTime()<cutoff;}),...protectedKeys.slice(30)];
  if(!remove.length)return;const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction('archive','readwrite');for(const key of remove)tx.objectStore('archive').delete(key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});
 }
-async function restoreLocalSnapshot(key){const db=await openDb();const record=await new Promise((resolve,reject)=>{const req=db.transaction('archive','readonly').objectStore('archive').get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});if(!record||!record.data||!Array.isArray(record.data.appointments)||!Array.isArray(record.data.clients))throw Error('Copia non valida');if(!confirm('Ripristinare la copia del '+(record.createdAt?backupDateLabel(record.createdAt):key)+'? I dati attuali verranno sostituiti. Esporta prima un backup esterno.'))return;await saveQueue;await createLocalSnapshot(true);state.appointments=record.data.appointments;state.clients=record.data.clients;state.phones=record.data.phones||{};state.communes=record.data.communes||{};state.closures=record.data.closures||[];state.reminders=record.data.reminders||{};state.appName=validAppName(record.data.appName);services=validServices(record.data.services);save();await saveQueue;renderAll();alert('Copia locale ripristinata.');}
+async function restoreLocalSnapshot(key){const db=await openDb();const record=await new Promise((resolve,reject)=>{const req=db.transaction('archive','readonly').objectStore('archive').get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});if(!record||!record.data||!Array.isArray(record.data.appointments)||!Array.isArray(record.data.clients))throw Error('Copia non valida');if(!confirm('Ripristinare la copia del '+(record.createdAt?backupDateLabel(record.createdAt):key)+'? I dati attuali verranno sostituiti. Esporta prima un backup esterno.'))return;await saveQueue;await createLocalSnapshot(true);state.appointments=record.data.appointments;state.clients=record.data.clients;state.phones=record.data.phones||{};state.communes=record.data.communes||{};state.closures=record.data.closures||[];state.reminders=record.data.reminders||{};state.appName=validAppName(record.data.appName);services=validServices(record.data.services);state.brandImage=validBrandImage(record.data.brandImage);save();await saveQueue;renderAll();alert('Copia locale ripristinata.');}
 $('restoreLocalBtn').onclick=async()=>{try{const keys=await listLocalSnapshots();const db=await openDb();const el=$('localBackupList');el.replaceChildren();if(!keys.length){el.textContent='Nessuna copia locale disponibile.';return;}for(const key of keys){const btn=document.createElement('button');btn.className='ghost-btn';const record=await new Promise((resolve,reject)=>{const req=db.transaction('archive','readonly').objectStore('archive').get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});btn.textContent='Ripristina copia del '+(record?.createdAt?backupDateLabel(record.createdAt):key.replace('snapshot-',''));btn.onclick=()=>restoreLocalSnapshot(key).catch(e=>alert(e.message));el.append(btn);}}catch(e){alert('Impossibile leggere le copie locali: '+e.message)}};
 // Parser vCard 3/4: supporto base a FN, N e TEL, linee ripiegate.
 function parseVcf(text){const cards=String(text).replace(/\r\n/g,'\n').replace(/\r/g,'\n').replace(/\n[ \t]/g,'').split(/BEGIN:VCARD/i).slice(1);const out=[];for(const card of cards){const body=card.split(/END:VCARD/i)[0];const lines=body.split('\n');let name='',fallback='',phone='';for(const line of lines){const idx=line.indexOf(':');if(idx<0)continue;const field=line.slice(0,idx).toUpperCase().split(';')[0].replace(/^ITEM\d+\./,'');const value=line.slice(idx+1).replace(/\\n/gi,' ').replace(/\\,/g,',').trim();if(field==='FN')name=value;else if(field==='N')fallback=value.split(';').filter(Boolean).reverse().join(' ');else if(field==='TEL'&&!phone)phone=normalizePhone(value.replace(/^tel:/i,''));}if(name||fallback)out.push({name:normalizeClientName(name||fallback),phone});}return out;}
-$('importVcfFile').onchange=async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;try{const entries=parseVcf(await f.text());if(!entries.length)throw Error('Nessun contatto riconosciuto. Esporta i contatti in formato vCard (.vcf).');if(!confirm('Importare '+entries.length+' contatti? I nomi già presenti verranno mantenuti; i cellulari esistenti non saranno sovrascritti.'))return;let added=0,numbers=0;for(const entry of entries){if(!state.clients.some(c=>clientKey(c)===clientKey(entry.name))){state.clients.push(entry.name);added++;}const key=clientKey(entry.name);if(entry.phone&&!state.phones[key]){state.phones[key]=entry.phone;numbers++;}}save();await saveQueue;renderAll();$('contactImportStatus').textContent=`Importati ${added} nuovi clienti e ${numbers} numeri. Controlla eventuali omonimi.`;}catch(err){alert('Importazione VCF non riuscita: '+err.message)}};
+$('importVcfFile').onchange=async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;try{const entries=parseVcf(await f.text());if(!entries.length)throw Error('Nessun contatto riconosciuto. Esporta i contatti in formato vCard (.vcf).');if(!confirm('Importare '+entries.length+' contatti? I nomi già presenti verranno mantenuti; i cellulari esistenti non saranno sovrascritti.'))return;let added=0,numbers=0;const knownClients=new Set(state.clients.map(clientKey));for(const entry of entries){const entryKey=clientKey(entry.name);if(!knownClients.has(entryKey)){state.clients.push(entry.name);knownClients.add(entryKey);added++;}const key=clientKey(entry.name);if(entry.phone&&!state.phones[key]){state.phones[key]=entry.phone;numbers++;}}save();await saveQueue;renderAll();$('contactImportStatus').textContent=`Importati ${added} nuovi clienti e ${numbers} numeri. Controlla eventuali omonimi.`;}catch(err){alert('Importazione VCF non riuscita: '+err.message)}};
 
-setupServiceSettings();load().then(async()=>{renderAll();scheduleSectionHelp('agenda');if(!window.archiveUnavailable){try{await createLocalSnapshot();await cleanLocalSnapshots();}catch(e){console.error('Backup locale:',e);}}});
+function showGlobalSearch(){
+ const q=$('globalSearch').value.trim().toLocaleLowerCase('it-IT');const panel=$('globalSearchResults');panel.replaceChildren();panel.hidden=q.length<2;if(q.length<2)return;
+ const matches=[];
+ for(const name of state.clients){if(name.toLocaleLowerCase('it-IT').includes(q)||phoneFor(name).includes(q))matches.push({label:'👤 '+name,sub:'Cliente · '+(phoneFor(name)||'Nessun cellulare'),action:()=>{setView('clienti');$('clientSearch').value=name;renderClients()}})}
+ for(const a of state.appointments){if(a.client.toLocaleLowerCase('it-IT').includes(q)||a.service.toLocaleLowerCase('it-IT').includes(q)||a.date.includes(q)){matches.push({label:'📅 '+a.client+' · '+a.time,sub:a.date+' · '+a.service+' · '+statusLabel(a.status),action:()=>{state.date=new Date(a.date+'T12:00:00');setView('agenda');renderAgendaDay()}})}}
+ matches.slice(0,20).forEach(m=>{const b=document.createElement('button');b.type='button';b.className='global-result';const strong=document.createElement('strong');strong.textContent=m.label;const small=document.createElement('small');small.textContent=m.sub;b.append(strong,small);b.onclick=()=>{m.action();$('globalSearch').value='';panel.hidden=true};panel.append(b)});
+ if(!matches.length){const p=document.createElement('p');p.textContent='Nessun risultato';panel.append(p)}
+}
+$('globalSearch').addEventListener('input',showGlobalSearch);
+$('homeTopBtn').onclick=()=>setView('home');
+$('homeNewAppointment').onclick=()=>{state.date=new Date();setView('agenda');renderAgendaDay();openAppointment({date:iso(state.date),time:'08:00'})};
+$('agendaToday').onclick=()=>{state.date=new Date();renderAgendaDay()};
+$('agendaTomorrow').onclick=()=>{const d=new Date();d.setDate(d.getDate()+1);state.date=d;renderAgendaDay()};
+setupServiceSettings();setupBrandImage();load().then(async()=>{renderAll();if(!window.archiveUnavailable){try{await createLocalSnapshot();await cleanLocalSnapshots();}catch(e){console.error('Backup locale:',e);}}});
 
-$('restoreBackupFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.appointments)||!Array.isArray(d.clients)||!d.appointments.every(a=>a&&typeof a==='object'&&typeof a.id==='string'&&typeof a.date==='string')||!d.clients.every(c=>typeof c==='string'))throw Error('Formato errato');if(!confirm('Ripristinare il backup? I dati attualmente salvati su questo dispositivo verranno sostituiti.'))return;await saveQueue;await createLocalSnapshot(true);state.appointments=d.appointments;state.clients=d.clients;state.phones=(d.phones&&typeof d.phones==='object'&&!Array.isArray(d.phones))?d.phones:{};state.communes=(d.communes&&typeof d.communes==='object'&&!Array.isArray(d.communes))?d.communes:{};state.closures=Array.isArray(d.closures)?d.closures:[];state.reminders=(d.reminders&&typeof d.reminders==='object'&&!Array.isArray(d.reminders))?d.reminders:{};state.appName=validAppName(d.appName);services=validServices(d.services);save();await saveQueue;renderAll();alert('Backup ripristinato correttamente.')}catch(err){alert('Backup non valido: è necessario un file esportato da Barber Pro.')}};r.readAsText(f);e.target.value='';};
+$('restoreBackupFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.appointments)||!Array.isArray(d.clients)||!d.appointments.every(a=>a&&typeof a==='object'&&typeof a.id==='string'&&typeof a.date==='string')||!d.clients.every(c=>typeof c==='string'))throw Error('Formato errato');if(!confirm('Ripristinare il backup? I dati attualmente salvati su questo dispositivo verranno sostituiti.'))return;await saveQueue;await createLocalSnapshot(true);state.appointments=d.appointments;state.clients=d.clients;state.phones=(d.phones&&typeof d.phones==='object'&&!Array.isArray(d.phones))?d.phones:{};state.communes=(d.communes&&typeof d.communes==='object'&&!Array.isArray(d.communes))?d.communes:{};state.closures=Array.isArray(d.closures)?d.closures:[];state.reminders=(d.reminders&&typeof d.reminders==='object'&&!Array.isArray(d.reminders))?d.reminders:{};state.appName=validAppName(d.appName);services=validServices(d.services);state.brandImage=validBrandImage(d.brandImage);save();await saveQueue;renderAll();alert('Backup ripristinato correttamente.')}catch(err){alert('Backup non valido: è necessario un file esportato da Barber Pro.')}};r.readAsText(f);e.target.value='';};

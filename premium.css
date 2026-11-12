@@ -106,3 +106,38 @@ input,select,textarea{background:#fbfdfb;color:#203d2c;border:1px solid #cfddd2;
 .cancelled-archive-list{display:grid;gap:10px;margin-top:20px}.cancelled-archive-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px;border:1px solid #e2e9e3;border-radius:12px;background:#fafcfb}.cancelled-archive-info{display:grid;gap:4px;min-width:0}.cancelled-archive-info strong{overflow-wrap:anywhere}.cancelled-archive-info span{font-size:13px;color:#65786b}
 @media(max-width:530px){.cancelled-archive-item{align-items:stretch;flex-direction:column}.cancelled-archive-item button{align-self:flex-start}}
 @media print{.cancelled-archive-bar,.cancelled-archive-dialog{display:none!important}}
+
+/* Home iPad: navigazione a riquadri e riepilogo */
+.home-welcome{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px!important;margin-bottom:18px}
+.home-welcome h3{font-size:clamp(22px,3vw,30px);margin:4px 0 8px}.home-welcome p:last-child{margin-bottom:0}
+.home-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:26px}
+.home-metric{background:#fff;border:1px solid #e3e9e2;border-radius:17px;padding:18px;display:flex;flex-direction:column;gap:8px;box-shadow:0 3px 12px #15391b08;min-width:0}
+.home-metric span{color:#496051;font-size:13px;font-weight:700}.home-metric strong{font-size:clamp(25px,3vw,36px);line-height:1.1;color:#153e2b}.home-metric small{color:#738076;font-size:12px}
+.home-section-heading{margin:0 0 14px}.home-section-heading h3{font-size:21px;margin:0 0 4px}.home-section-heading p{margin:0}
+.home-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:22px}
+.home-links button{position:relative;min-width:0;min-height:140px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:7px;border:1px solid #e0e8df;border-radius:18px;background:#fff;padding:20px;cursor:pointer;color:#173c2b;box-shadow:0 4px 16px #173c2b09;transition:transform .15s,border-color .15s,box-shadow .15s}
+.home-links button:hover,.home-links button:focus-visible{border-color:#b49b58;box-shadow:0 6px 22px #173c2b18;transform:translateY(-1px)}
+.home-link-icon{font-size:25px;line-height:1.2}.home-links strong{font-size:17px}.home-links small{font-size:13px;color:#718074}.home-chevron{position:absolute;right:18px;top:18px;font-size:26px;color:#b39b5c}
+.home-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px!important}.home-footer p{margin:5px 0 0}
+@media(max-width:1100px){.home-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.home-links{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.home-welcome,.home-footer{flex-direction:column;align-items:stretch}.home-metrics{gap:9px}.home-metric{padding:13px}.home-links{gap:10px}.home-links button{padding:15px;min-height:128px}.home-links strong{font-size:15px}.home-links small{font-size:12px}}
+
+/* Home senza menu laterale, iPad */
+.app-shell{display:block!important}.sidebar{display:none!important}.main{width:100%!important;max-width:1450px;margin:0 auto;padding:16px 24px 40px!important;min-width:0}.topbar{display:flex!important;align-items:center;gap:16px;flex-wrap:wrap}.topbar #homeTopBtn{min-height:46px;font-weight:800;border:1px solid #d9e4db}.topbar .top-actions{margin-left:auto}.home-fast{display:flex;align-items:flex-start;gap:18px;padding:18px!important;margin:0 0 22px}.home-fast>.primary-btn{min-height:52px;white-space:nowrap}.universal-search{position:relative;flex:1;min-width:0}.universal-search label{display:block;font-weight:700;margin-bottom:6px;color:#345843}.universal-search input{width:100%;min-height:48px}.global-search-results{position:absolute;top:100%;left:0;right:0;z-index:15;max-height:310px;overflow:auto;background:#fff;border:1px solid #cbdccf;border-radius:12px;box-shadow:0 12px 30px #193a2928;padding:5px}.global-search-results[hidden]{display:none}.global-result{width:100%;display:grid;gap:3px;padding:11px;text-align:left;background:#fff;border:0;border-bottom:1px solid #edf1ed;cursor:pointer}.global-result:hover{background:#edf7f0}.global-result small{color:#617565}.client-insights{font-size:12px;color:#54755d}.home-footer{border-left:4px solid #b69b58}.toolbar #agendaToday,.toolbar #agendaTomorrow{min-height:44px;white-space:nowrap}
+@media(max-width:760px){.main{padding:12px!important}.home-fast{flex-direction:column}.universal-search,.home-fast>.primary-btn{width:100%}.topbar .top-actions{width:100%}.toolbar{flex-wrap:wrap}.home-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Immagine personalizzabile della Home */
+.home-hero-image{width:112px;height:112px;flex:0 0 112px;border-radius:20px;background:#eaf2e9;border:1px solid #dce8db;display:grid;place-items:center;overflow:hidden}
+.home-hero-image img{width:100%;height:100%;object-fit:cover}
+.home-welcome-copy{flex:1;min-width:0}
+.brand-image-settings{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:16px}
+.brand-image-settings img{width:140px;height:110px;object-fit:cover;background:#f1f5f0;border:1px solid #dce8db;border-radius:15px}
+.brand-image-actions{display:flex;align-items:flex-start;flex-direction:column;gap:10px}
+@media(max-width:600px){.home-welcome{flex-wrap:wrap}.home-hero-image{width:80px;height:80px;flex-basis:80px}.home-welcome>.primary-btn{width:100%}}
+
+/* Stato delle fasce calcolato sui minuti effettivamente occupati */
+.compact-slot.partial{background:#fff1d9;border-color:#e9ae50;color:#92510d}
+.slot-partial{border-left:5px solid #e9a23b;background:#fffaf0}
+.slot-full{border-left:5px solid #cc4851;background:#fff5f5}
+.slot-free{border-left:5px solid #64a77c}
+.compact-slot:disabled{opacity:.75}

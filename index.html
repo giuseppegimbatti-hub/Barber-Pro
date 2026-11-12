@@ -6,32 +6,16 @@
   <meta name="theme-color" content="#f5f7f4" />
   <title>Barber Pro Studio</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=20261028-ui-refined1" />
-  <link rel="stylesheet" href="premium.css?v=20261028-ui-refined1" />
+  <link rel="stylesheet" href="styles.css?v=20261110-performance1" />
+  <link rel="stylesheet" href="premium.css?v=20261110-performance1" />
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark">✂</div>
-        <div><h1 data-app-name>Barber Pro</h1><p>Studio Manager</p></div>
-      </div>
-      <nav class="nav">
-        <button class="nav-btn active" data-view="agenda">📅 Agenda</button>
-        <button class="nav-btn" data-view="promemoria">💬 Promemoria WhatsApp</button>
-        <button class="nav-btn" data-view="clienti">👥 Clienti</button>
-        <button class="nav-btn" data-view="chiusure">🏖️ Ferie e chiusure</button>
-        <button class="nav-btn" data-view="report">📊 Gestionale</button>
-        <button class="nav-btn" data-view="backup">🛡️ Centro backup</button>
-        <button class="nav-btn" data-view="servizi">✂️ Servizi e impostazioni</button>
-      </nav>
-    </aside>
-
     <main class="main">
-      <header class="topbar">
+      <header class="topbar"><button type="button" id="homeTopBtn" class="ghost-btn">⌂ Home</button>
         <div>
           <p class="eyebrow">Gestionale barbiere</p>
-          <div class="page-heading"><h2 id="pageTitle">Agenda</h2><button id="openHelpBtn" class="help-trigger" type="button" aria-label="Apri la guida di questa sezione" title="Come funziona questa sezione">? <span>Guida</span></button></div>
+          <div class="page-heading"><h2 id="pageTitle">Home</h2><button id="openHelpBtn" class="help-trigger" type="button" aria-label="Apri la guida di questa sezione" title="Come funziona questa sezione">? <span>Guida</span></button></div>
         </div>
         <div class="top-actions" id="globalBackupActions">
           <div id="backupNotice" role="status" style="width:100%;font-size:13px;padding:8px 0"></div><button id="exportBtn" class="ghost-btn">Esporta backup</button>
@@ -41,9 +25,29 @@
         </div>
       </header>
 
-      <section id="agenda" class="view active">
+      <section id="home" class="view active" aria-label="Home Barber Pro">
+        <div class="home-welcome card"><div class="home-hero-image"><img id="homeBrandImage" src="icon.svg" alt="Immagine del salone"></div><div class="home-welcome-copy"><p class="eyebrow">PANORAMICA</p><h3>Benvenuto nel tuo gestionale</h3><p class="muted" id="homeTodayLabel"></p></div><button type="button" class="primary-btn" data-home-link="agenda">Apri agenda →</button></div>
+        <div class="home-metrics" aria-label="Riepilogo della giornata">
+          <div class="home-metric"><span>Appuntamenti oggi</span><strong id="homeTotal">0</strong><small>Esclusi gli annullati</small></div>
+          <div class="home-metric"><span>Da completare</span><strong id="homePending">0</strong><small>Prenotazioni attive</small></div>
+          <div class="home-metric"><span>Completati</span><strong id="homeCompleted">0</strong><small>Registrati oggi</small></div>
+          <div class="home-metric"><span>Prossimo appuntamento</span><strong id="homeNextTime">—</strong><small id="homeNextClient">Nessuno in programma</small></div>
+        </div>
+        <div class="home-fast card"><button type="button" id="homeNewAppointment" class="primary-btn">＋ Nuovo appuntamento</button><div class="universal-search"><label for="globalSearch">🔎 Ricerca rapida clienti e appuntamenti</label><input id="globalSearch" type="search" placeholder="Nome, telefono, servizio o data…" autocomplete="off"><div id="globalSearchResults" class="global-search-results" hidden></div></div></div><div class="home-section-heading"><h3>Vai a una sezione</h3><p class="muted">Tutte le funzioni a portata di tocco</p></div>
+        <div class="home-links">
+          <button type="button" data-home-link="agenda"><span class="home-link-icon">📅</span><strong>Agenda</strong><small>Appuntamenti e orari</small><span class="home-chevron">›</span></button>
+          <button type="button" data-home-link="promemoria"><span class="home-link-icon">💬</span><strong>Promemoria</strong><small>WhatsApp e invii</small><span class="home-chevron">›</span></button>
+          <button type="button" data-home-link="clienti"><span class="home-link-icon">👥</span><strong>Clienti</strong><small>Anagrafica e storico</small><span class="home-chevron">›</span></button>
+          <button type="button" data-home-link="chiusure"><span class="home-link-icon">🏖️</span><strong>Ferie e chiusure</strong><small>Giorni non lavorativi</small><span class="home-chevron">›</span></button>
+          <button type="button" data-home-link="report"><span class="home-link-icon">📊</span><strong>Gestionale</strong><small>Incassi e statistiche</small><span class="home-chevron">›</span></button>
+          <button type="button" data-home-link="backup"><span class="home-link-icon">🛡️</span><strong>Centro backup</strong><small>Esporta e ripristina</small><span class="home-chevron">›</span></button>
+          <button type="button" data-home-link="servizi"><span class="home-link-icon">✂️</span><strong>Servizi</strong><small>Listino e impostazioni</small><span class="home-chevron">›</span></button>
+        </div>
+        <div class="home-footer card"><div><strong>Backup esterno</strong><p class="muted" id="homeBackupLabel">Controlla l'ultimo backup esportato.</p></div><button type="button" class="ghost-btn" data-home-link="backup">Gestisci backup</button></div>
+      </section>
+      <section id="agenda" class="view">
         <div class="toolbar card">
-          <button id="prevWeek" class="round-btn">‹</button>
+          <button type="button" id="agendaToday" class="ghost-btn">Oggi</button><button type="button" id="agendaTomorrow" class="ghost-btn">Domani</button><button id="prevWeek" class="round-btn">‹</button>
           <div id="weekStrip" class="week-strip"></div>
           <button id="nextWeek" class="round-btn">›</button>
         </div>
@@ -92,7 +96,7 @@
           <button id="printClientRankingBtn" class="ghost-btn">Stampa classifica clienti</button>
         </div>
         <div class="metrics">
-          <div class="metric card"><span>Incasso</span><strong id="metricIncome">0€</strong></div>
+          <div class="metric card"><span>Totale previsto</span><strong id="metricIncome">0€</strong><small id="actualIncome">Incassi confermati: 0€</small></div>
           <div class="metric card"><span>Appuntamenti</span><strong id="metricCount">0</strong></div>
           <div class="metric card"><span>Clienti</span><strong id="metricClients">0</strong></div>
         </div>
@@ -112,6 +116,11 @@
           </div>
         </div>
         <div class="card">
+          <h3>Immagine della Home</h3>
+          <p class="muted">Puoi sostituire l'immagine della Home con una foto o un logo. Rimane salvata sul dispositivo e viene inclusa nei backup JSON.</p>
+          <div class="brand-image-settings"><img id="brandImagePreview" src="icon.svg" alt="Anteprima immagine"><div class="brand-image-actions"><label class="ghost-btn file-label">Scegli immagine<input id="brandImageFile" type="file" accept="image/png,image/jpeg,image/webp,image/*" hidden></label><button id="resetBrandImage" class="ghost-btn" type="button">Ripristina immagine iniziale</button><small class="muted" id="brandImageStatus">Immagine predefinita</small></div></div>
+        </div>
+        <div class="card">
           <h3>Listino servizi</h3>
           <p class="muted">Modifica prezzi e durata, rinomina o elimina un servizio. Le prenotazioni già salvate conservano il servizio e il prezzo originali.</p>
           <div class="service-list-head"><span>Servizio</span><span>Prezzo €</span><span>Durata</span></div>
@@ -122,7 +131,7 @@
           <form id="addServiceForm" class="service-add-form">
             <label>Nome servizio<input id="newServiceLabel" maxlength="70" required placeholder="Es. Barba e shampoo"></label>
             <label>Prezzo (€)<input id="newServicePrice" type="number" min="0" max="10000" step="0.01" required inputmode="decimal"></label>
-            <label>Durata<select id="newServiceDuration"><option value="0.5">15 min</option><option value="1" selected>30 min</option><option value="1.5">45 min</option><option value="2">60 min</option><option value="3">90 min</option><option value="4">120 min</option></select></label>
+            <label>Durata<select id="newServiceDuration"><option value="0.3333333333333333">10 min</option><option value="0.6666666666666666">20 min</option><option value="0.5">15 min</option><option value="1" selected>30 min</option><option value="1.5">45 min</option><option value="2">60 min</option><option value="3">90 min</option><option value="4">120 min</option></select></label>
             <button class="primary-btn" type="submit">+ Aggiungi servizio</button>
           </form>
         </div>
@@ -153,7 +162,7 @@
       <div class="client-picker-field"><input id="appointmentClient" required placeholder="Seleziona o scrivi un nome" autocomplete="off"><button id="openClientPickerBtn" class="ghost-btn" type="button">🔎 Cerca cliente</button></div>
       <label>Cellulare cliente (facoltativo)<input id="appointmentPhone" type="tel" inputmode="tel" placeholder="Es. +39 333 1234567"></label><button type="button" id="whatsappAppointmentBtn" class="ghost-btn hidden">💬 Apri WhatsApp</button><label>Servizio<select id="appointmentService"></select></label>
       <label>Prezzo opzionale (€)<input id="appointmentCustomPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Lascia vuoto per usare il prezzo del servizio"></label>
-      <label>Ora<input id="appointmentTime" type="time" required></label>
+      <label>Ora<input id="appointmentTime" type="time" step="60" required></label><p id="appointmentDurationInfo" class="muted">Durata prevista: 30 minuti</p>
       <label>Stato appuntamento<select id="appointmentStatus"><option value="booked">Prenotato</option><option value="completed">Completato</option><option value="cancelled">Annullato</option><option value="noshow">Cliente assente</option></select></label><label class="payment-check"><input type="checkbox" id="appointmentPaid"> Pagamento ricevuto (conteggiato solo se completato)</label><label>Note appuntamento<textarea id="appointmentNotes" rows="3" placeholder="Es. preferenze taglio, ritardo, promemoria, note cliente..."></textarea></label>
       <div class="modal-actions">
         <button id="deleteAppointmentBtn" type="button" class="danger-btn hidden">Elimina</button>
@@ -197,6 +206,6 @@
       </div>
     </div>
   </dialog>
-  <script src="app.js?v=20261028-ui-refined1"></script>
+  <script src="app.js?v=20261110-performance1"></script>
 </body>
 </html>
