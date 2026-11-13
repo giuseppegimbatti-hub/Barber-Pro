@@ -141,3 +141,19 @@ input,select,textarea{background:#fbfdfb;color:#203d2c;border:1px solid #cfddd2;
 .slot-full{border-left:5px solid #cc4851;background:#fff5f5}
 .slot-free{border-left:5px solid #64a77c}
 .compact-slot:disabled{opacity:.75}
+
+/* Verifica e ripristino sicuro dei backup */
+.backup-preview-modal{max-width:min(94vw,620px);width:620px;padding:0;border:0;border-radius:18px;box-shadow:0 22px 70px rgba(14,38,27,.25)}
+.backup-preview-content{padding:clamp(18px,4vw,30px);max-height:85dvh;overflow:auto;color:#223c2e}
+.backup-preview-content h3{font-size:23px;margin:0 0 12px}
+.backup-preview-content>p{line-height:1.5;margin-bottom:16px}
+.backup-preview-report{background:#f5f8f5;border:1px solid #dbe7de;border-radius:12px;padding:14px 16px;margin:12px 0 20px;overflow-wrap:anywhere}
+.backup-preview-report p{margin:7px 0;font-size:14px;line-height:1.5}
+.backup-preview-filename{font-weight:700}
+.backup-preview-count{font-weight:700;color:#225e41}
+.backup-preview-error{color:#a11f2c;font-weight:600}
+.backup-preview-warning{color:#8c5c0e}
+.backup-preview-ok{color:#1f744b;font-weight:700}
+.backup-preview-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px}
+.backup-preview-actions button:disabled{opacity:.45;cursor:not-allowed}
+.restore-last-status{font-size:13px;color:#2c6748;margin:16px 0 0}

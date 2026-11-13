@@ -1,9 +1,24 @@
-# Barber Pro 2.0 — Performance
+# Barber Pro 2.0 Performance — Ripristino verificato
 
-Basato su BarberPro2_Agenda_Conferma_Veloce.zip.
+Base: ZIP Performance originale allegato dall’utente, senza modifiche al database IndexedDB (`barber-pro-ipad-v1`) né al formato di salvataggio degli appuntamenti.
 
-Ottimizzazioni: indice temporaneo per data e cliente (ricostruito dopo ogni modifica), riduzione delle scansioni dell’archivio durante il cambio giorno e la verifica delle sovrapposizioni, elenco clienti paginato (60 alla volta), storico cliente creato all’apertura, importazione vCard con verifica duplicati tramite Set, navigazione Agenda senza ricalcolo globale, schermata Clienti caricata soltanto quando richiesta.
+## Correzioni
+- Il comando «Importa dati» ora apre la verifica dei backup (prima non era collegato ad alcuna funzione).
+- I comandi di ripristino, inclusa la sezione Centro backup, leggono il file direttamente, senza usare `DataTransfer` e senza caricare dati online.
+- Anteprima non distruttiva con conteggi clienti/appuntamenti, intervallo date, stati, errori e formati adattati.
+- Blocca backup con zero appuntamenti, dati incompleti o ID duplicati: non sovrascrive l'archivio.
+- Accetta date ISO e date italiane, orari H:mm/HH:mm:ss, ID numerici convertiti in stringhe, preservando gli altri campi.
+- Prima del ripristino crea una copia locale protetta; scrive in IndexedDB, rilegge e verifica conteggi e ID/date/orari. In caso di errore tenta il rollback.
+- Dopo un ripristino riuscito apre l'Agenda su una data effettivamente presente nel backup.
+- Mostra la data e il numero di appuntamenti dell'ultimo ripristino verificato.
 
-Il nome del database IndexedDB, la struttura dell’archivio, i backup JSON e la logica di salvataggio non sono stati modificati. La gestione delle copie di sicurezza locali è invariata.
+## Procedura consigliata
+1. Dalla versione che contiene gli appuntamenti, esporta un backup JSON e salvalo in File / iCloud Drive.
+2. Mantieni installata la versione funzionante e non cancellare i dati di Safari.
+3. Carica questi file nella stessa repository, senza eliminare IndexedDB.
+4. Apri Centro backup → Verifica / ripristina JSON, seleziona il file e leggi il numero di appuntamenti trovato.
+5. Se il conteggio è corretto, premi «Ripristina dopo verifica». L'app verifica la scrittura e apre l'Agenda su una data presente nel backup.
+6. Se il backup mostra zero appuntamenti, non forzare il ripristino: quel file non contiene le prenotazioni. Cerca un backup precedente esportato dalla versione con gli appuntamenti visibili.
 
-**Prima di aggiornare:** esportare un backup JSON, conservare la vecchia versione e testare prima su una copia. Non eliminare dati Safari o l’app installata. Le prestazioni reali e la compatibilità con i dati dell’iPad richiedono verifica sul dispositivo.
+## Limiti
+La compatibilità con il file JSON reale dell'utente non è stata verificata perché il file non è stato fornito. Il controllo di sintassi e i test locali non sostituiscono una prova sull'iPad. Le copie locali IndexedDB non sostituiscono un backup esterno.

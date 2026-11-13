@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#f5f7f4" />
   <title>Barber Pro Studio</title>
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="styles.css?v=20261110-performance1" />
-  <link rel="stylesheet" href="premium.css?v=20261110-performance1" />
+  <link rel="stylesheet" href="styles.css?v=20261113-restore-safe1" />
+  <link rel="stylesheet" href="premium.css?v=20261113-restore-safe1" />
 </head>
 <body>
   <div class="app-shell">
@@ -20,7 +20,7 @@
         <div class="top-actions" id="globalBackupActions">
           <div id="backupNotice" role="status" style="width:100%;font-size:13px;padding:8px 0"></div><button id="exportBtn" class="ghost-btn">Esporta backup</button>
           <label class="ghost-btn file-label">Ripristina backup<input id="restoreBackupFile" type="file" accept="application/json" hidden></label>
-          <label class="ghost-btn file-label">Importa dati<input id="importFile" type="file" accept="application/json" hidden></label>
+          <label class="ghost-btn file-label">Verifica backup<input id="importFile" type="file" accept="application/json" hidden></label>
           <button id="installBtn" class="primary-btn hidden">Installa app</button>
         </div>
       </header>
@@ -138,12 +138,25 @@
       </section>
       <section id="backup" class="view">
         <div class="card backup-main-card"><h3>Backup esterno</h3><p class="muted">I backup locali sono nello stesso archivio dell'iPad: esporta periodicamente un JSON su iCloud Drive per proteggerti dalla perdita dei dati del browser.</p><p id="backupCenterStatus" role="status"></p>
-        <div class="backup-actions"><button id="backupExportBtn" class="primary-btn" type="button">⬇ Esporta backup JSON</button><label class="ghost-btn file-label">⬆ Ripristina backup JSON<input id="backupImportFile" type="file" accept="application/json" hidden></label><button id="refreshLocalBtn" class="ghost-btn" type="button">Aggiorna copie locali</button></div>
-        <p class="muted">Dopo l'esportazione verifica che il file sia presente in File → iCloud Drive. L'app non può salvarlo automaticamente senza il tuo intervento.</p></div>
+        <div class="backup-actions"><button id="backupExportBtn" class="primary-btn" type="button">⬇ Esporta backup JSON</button><label class="ghost-btn file-label">⬆ Verifica / ripristina JSON<input id="backupImportFile" type="file" accept="application/json" hidden></label><button id="refreshLocalBtn" class="ghost-btn" type="button">Aggiorna copie locali</button></div>
+        <p class="muted">Dopo l'esportazione verifica che il file sia presente in File → iCloud Drive. L'app non può salvarlo automaticamente senza il tuo intervento.</p><p class="restore-last-status" id="backupLastRestoreStatus" role="status"></p></div>
         <div class="card backup-local-card"><h3>Copie locali automatiche</h3><p class="muted" id="autoBackupStatus">Una copia giornaliera fino a 30 giorni; fino a 30 copie protette prima delle modifiche importanti. Non sono backup esterni.</p><button class="ghost-btn" id="restoreLocalBtn" type="button">Mostra le copie locali</button><div id="localBackupList"></div></div>
       </section>
     </main>
   </div>
+
+
+  <dialog id="backupPreviewDialog" class="modal backup-preview-modal" aria-labelledby="backupPreviewTitle">
+    <div class="backup-preview-content">
+      <h3 id="backupPreviewTitle">Verifica backup JSON</h3>
+      <p class="muted">Controllo locale sul dispositivo: il file non viene inviato online e nessun dato viene modificato finché non confermi il ripristino.</p>
+      <div id="backupPreviewReport" class="backup-preview-report" role="status" aria-live="polite"></div>
+      <div class="backup-preview-actions">
+        <button type="button" id="backupPreviewClose" class="ghost-btn">Chiudi senza modificare</button>
+        <button type="button" id="backupPreviewRestore" class="primary-btn" disabled>Ripristina dopo verifica</button>
+      </div>
+    </div>
+  </dialog>
 
   <dialog id="cancelledAppointmentsDialog" class="modal cancelled-archive-dialog" aria-labelledby="cancelledArchiveTitle">
     <div class="cancelled-archive-content">
@@ -206,6 +219,6 @@
       </div>
     </div>
   </dialog>
-  <script src="app.js?v=20261110-performance1"></script>
+  <script src="app.js?v=20261113-restore-safe1"></script>
 </body>
 </html>
